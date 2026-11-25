@@ -1,19 +1,19 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-25 13:47 GST por Manager (Prompt T-02 corregido tras hallazgos del Revisor)
+Última actualización: 2026-11-25 14:29 GST por Manager (Inicio Coder T-02 tras APTO del Revisor)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-02` — Esquema Base de BD (`clinics`, `profiles`, `audit_log`) + Auth + RLS (`[DELICADA]`, ronda 2 de validación del prompt por el Revisor tras aplicar los 3 bloqueantes y 4 sugerencias)
-- Bloqueado por el humano: Ninguno para re-validar el prompt de `T-02`; antes de `T-03` (Login real) habrá que crear el proyecto `dentalcare` en Supabase (la cuenta tiene actualmente 2 proyectos activos en plan Free: `ViNapp` y `dubai-run-territory`)
-- Próxima tarea propuesta: `T-02` (tras `APTO` del Revisor en `docs/prompts/T-02.md`)
+- En curso: `T-02` — Esquema Base de BD (`clinics`, `profiles`, `audit_log`) + Auth + RLS (`[DELICADA]`, prompt `APTO` por el Revisor en `8fd53b4`, entregado al Coder)
+- Bloqueado por el humano: Ninguno para ejecutar `T-02`; antes de `T-03` (Login real) habrá que crear el proyecto `dentalcare` en Supabase (la cuenta tiene actualmente 2 proyectos activos en plan Free: `ViNapp` y `dubai-run-territory`)
+- Próxima tarea propuesta: `T-03` — Pantalla de Login, Protección de Rutas y Shell (`[DELICADA]`, tras fusionar `T-02`)
 
 ## Tabla de tareas
 
 | Tarea | Conversación | Rama | Worktree | PR | Estado | Inicio | Merge | Rondas | Errores atrapados | Nota |
 |---|---|---|---|---|---|---|---|---|---|---|
 | T-01 Esqueleto Frontend + i18n + CI | T-01 esqueleto | `t-01-esqueleto-frontend` | — (en serie) | #3 | ✅ Fusionada | 2026-11-25 | 2026-11-25 (`d3e9aaf`) | 2 | 1 (`vite` faltante en `devDependencies`) | Preview probado por Augusto: PASÓ |
-| T-02 Esquema BD base + Auth + RLS | Revisor T-02 (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-25 | | 2 (prompt) | 3 (Revisor prompt: `SECURITY INVOKER`, RLS `RETURNING`, configs Vitest/TS) | `[DELICADA]` Prompt actualizado en `docs/prompts/T-02.md`, pendiente 2.ª revisión (`APTO`) |
+| T-02 Esquema BD base + Auth + RLS | T-02 esquema-rls | `t-02-esquema-base-rls` | — (en serie) | — | 🛠️ En curso | 2026-11-25 | | 2 (prompt) | 3 (Revisor prompt: `SECURITY INVOKER`, RLS `RETURNING`, configs Vitest/TS) | `[DELICADA]` Prompt `APTO` por Revisor (`8fd53b4`), en manos del Coder |
 | T-03 Login + Shell + Idioma | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-02 |
 | T-04 Config clínica multi-país | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-03 |
 | T-05 Pacientes + Alertas rojas | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-03 |
