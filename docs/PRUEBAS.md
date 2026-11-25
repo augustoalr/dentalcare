@@ -35,4 +35,4 @@
 
 | Fecha | Tarea | Paso | Esperado | Lo que vi | Resultado |
 |---|---|---|---|---|---|
-| *(Pendiente primera tarea visual)* | | | | | |
+| 2026-11-25 | T-01 | Preview Vercel (`dentalcare-git-t-01-esqueleto-frontend-tico17.vercel.app`): carga inicial, aviso sintético, cambio EN↔ES con persistencia tras recarga, alerta médica roja con icono y 3 estados base | Carga correcta, 100% traducido EN/ES, idioma persistido y estados/alerta médica legibles | Validado por Augusto en preview antes del merge de PR #3 (`06dd8116`) | PASÓ |

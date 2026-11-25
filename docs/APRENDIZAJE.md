@@ -7,6 +7,7 @@ Modo profesor: SÍ · Lo actualiza el Manager al fusionar cada tarea (R-19).
 | Fecha | Tarea | PR | Lección (1 línea, palabras simples) | Concepto nuevo | Tipo de error (si hubo) | ¿Repetido? |
 |---|---|---|---|---|---|---|
 | 2026-11-25 | Arranque | — | Guardar dinero en céntimos enteros y aislar proveedores tras conectores evita errores de redondeo y reescrituras futuras | Wrapper / Céntimos enteros | — | — |
+| 2026-11-25 | T-01 | #3 | Declarar directamente en `package.json` toda herramienta usada en scripts (como `vite`) evita que el build falle en servidores limpios de CI y Vercel | Dependencia directa vs transitiva (`pnpm`) | Dependencia directa faltante (`vite`) | No |
 
 ## Errores que se repiten (candidatos a regla)
 - *(Vacío todavía. Cuando el mismo tipo de error aparezca por 2.ª vez, el Manager propondrá aquí una nueva regla `R-20…` siguiendo el manual 01 §11).*
