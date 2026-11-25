@@ -78,6 +78,9 @@ importers:
       typescript-eslint:
         specifier: ^8.25.0
         version: 8.74.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.9.3)
+      vite:
+        specifier: ^7.3.8
+        version: 7.3.8(@types/node@26.6.10)(jiti@2.7.0)(lightningcss@1.33.0)
       vitest:
         specifier: ^3.0.7
         version: 3.2.7(@types/node@26.6.10)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.33.0)
