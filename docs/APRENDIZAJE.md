@@ -8,6 +8,7 @@ Modo profesor: SÍ · Lo actualiza el Manager al fusionar cada tarea (R-19).
 |---|---|---|---|---|---|---|
 | 2026-11-25 | Arranque | — | Guardar dinero en céntimos enteros y aislar proveedores tras conectores evita errores de redondeo y reescrituras futuras | Wrapper / Céntimos enteros | — | — |
 | 2026-11-25 | T-01 | #3 | Declarar directamente en `package.json` toda herramienta usada en scripts (como `vite`) evita que el build falle en servidores limpios de CI y Vercel | Dependencia directa vs transitiva (`pnpm`) | Dependencia directa faltante (`vite`) | No |
+| 2026-11-25 | T-02 | #7 | Validar el diseño de permisos de base de datos con el Revisor antes de programar evitó 3 huecos de seguridad y dejó el PR en verde al primer intento | Triggers `SECURITY INVOKER` / RLS con `RETURNING` | — (atrapados en prompt) | No |
 
 ## Errores que se repiten (candidatos a regla)
 - *(Vacío todavía. Cuando el mismo tipo de error aparezca por 2.ª vez, el Manager propondrá aquí una nueva regla `R-20…` siguiendo el manual 01 §11).*
