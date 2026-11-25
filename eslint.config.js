@@ -25,4 +25,10 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['tests/**/*.ts', 'vite.config.ts', 'vitest.db.config.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 );
