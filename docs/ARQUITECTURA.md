@@ -24,15 +24,15 @@ flowchart LR
 2. **Inmutabilidad por defecto:** los objetos de estado y cálculos financieros nunca se mutan en sitio.
 3. **Dinero e impuestos exactos:** importes en céntimos enteros (`_cents`) y tasas fiscales en puntos básicos enteros (`_bps`, ej. `500` = 5,00%).
 
-## Componentes previstos
+## Componentes implementados y previstos
 
-| Pieza | Qué hace | Dónde estará |
+| Pieza | Qué hace | Dónde está |
 |---|---|---|
-| Interfaz PWA + i18n | Pantallas responsive en EN/ES con tokens semánticos | `src/features/`, `src/ui/`, `src/i18n/` |
-| Dominio puro | Cálculos de céntimos/impuestos, reglas de estado de citas y facturas | `src/domain/` |
-| Wrappers / Servicios | Acceso a Supabase y conector `IWhatsAppService` (`WaMeAdapter`) | `src/services/` |
-| Esquema y seguridad BD | Migraciones SQL, RLS por `clinic_id` y rol, seed sintético | `supabase/migrations/`, `supabase/seed.sql` |
-| CI automático | Check único `verify` (lint, tipos, tests, BD, build) | `.github/workflows/ci.yml` |
+| Interfaz PWA + i18n | Pantallas responsive en EN/ES con tokens semánticos (`src/index.css`), estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`) y manifest PWA (`public/manifest.webmanifest`) | `src/features/`, `src/ui/`, `src/i18n/`, `public/` |
+| Dominio puro | Lógica pura de idioma (`locale.ts`) en `T-01`; cálculos de céntimos/impuestos y reglas de citas/facturas en tareas posteriores | `src/domain/` |
+| Wrappers / Servicios | Wrapper `IStorageAdapter` (`BrowserStorageAdapter`, `InMemoryStorageAdapter`) en `T-01`; acceso a Supabase y `IWhatsAppService` (`WaMeAdapter`) en tareas posteriores | `src/services/` |
+| Esquema y seguridad BD | Migraciones SQL, RLS por `clinic_id` y rol, seed sintético (a partir de `T-02`) | `supabase/migrations/`, `supabase/seed.sql` |
+| CI automático | Check único `verify` (`pnpm lint && pnpm typecheck && pnpm test && pnpm build`) | `.github/workflows/ci.yml` |
 
 ## Modelo de datos canónico
 

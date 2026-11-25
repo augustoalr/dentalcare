@@ -1,0 +1,45 @@
+{
+  "app": {
+    "name": "DentalCare",
+    "tagline": "Gestión odontológica unificada",
+    "demoBadge": "Entorno de pruebas · Solo datos sintéticos"
+  },
+  "language": {
+    "label": "Idioma",
+    "en": "English",
+    "es": "Español",
+    "switchToEn": "Cambiar idioma a inglés",
+    "switchToEs": "Cambiar idioma a español"
+  },
+  "states": {
+    "loadingTitle": "Cargando espacio de la clínica",
+    "loadingDescription": "Preparando tu agenda y las fichas de pacientes.",
+    "errorTitle": "No se pudo cargar la información",
+    "errorDescription": "Ocurrió un problema al cargar esta sección. Por favor, inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "emptyTitle": "Todavía no hay registros",
+    "emptyDescription": "Los elementos aparecerán aquí en cuanto tu clínica los añada."
+  },
+  "medicalAlert": {
+    "label": "Alerta médica crítica",
+    "sampleTitle": "Alergia a la penicilina — Sensibilidad al látex",
+    "sampleDescription": "Verificar anestesia alternativa y guantes sin látex antes de iniciar cualquier procedimiento clínico."
+  },
+  "welcome": {
+    "heroTitle": "Tu clínica dental, organizada en un solo lugar",
+    "heroDescription": "Gestiona citas, notas clínicas, presupuestos y facturación desde cualquier ordenador o móvil.",
+    "sandboxNoticeTitle": "Entorno de validación sintético",
+    "sandboxNoticeBody": "Esta vista previa utiliza únicamente datos ficticios de prueba. No introduzcas datos reales de pacientes.",
+    "pillarsTitle": "Flujo principal de la clínica",
+    "pillars": {
+      "scheduleTitle": "Agenda del día",
+      "scheduleDescription": "Estado claro de citas, notas por visita y recordatorios privados sin datos clínicos.",
+      "patientsTitle": "Ficha de pacientes",
+      "patientsDescription": "Datos básicos, alertas médicas críticas destacadas en rojo y archivos clínicos privados.",
+      "billingTitle": "Presupuestos y cobros",
+      "billingDescription": "Moneda e impuestos configurables con cálculo exacto y seguimiento de pagos."
+    },
+    "statesPreviewTitle": "Estados visuales del sistema",
+    "statesPreviewDescription": "Estados estandarizados y alertas médicas de alto contraste listos para cada pantalla."
+  }
+}
