@@ -1,18 +1,18 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-25 11:35 GST por Arquitecto (Arranque Fase C)
+Última actualización: 2026-11-25 12:45 GST por Manager (Inicio de T-01)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: Ninguna (Fase C de documentación y archivos base completada; pendiente Fase D de montaje en GitHub/Vercel/Supabase)
-- Bloqueado por el humano: Crear repo en GitHub, subir commit inicial, activar protección de `main` y cuentas gratuitas (Fase D)
-- Próxima tarea propuesta: `T-01` — Esqueleto Frontend + Design Tokens + i18n (EN/ES) + CI completo
+- En curso: `T-01` — Esqueleto Frontend + Design Tokens + i18n (EN/ES) + CI completo (prompt listo en `docs/prompts/T-01.md`)
+- Bloqueado por el humano: Ninguno para empezar `T-01` (confirmar conexión de Vercel/Supabase/Sentry antes de preview de `T-01` / arranque de `T-02`)
+- Próxima tarea propuesta: `T-02` — Esquema Base de BD + Auth + RLS (`[DELICADA]`, tras fusionar `T-01`)
 
 ## Tabla de tareas
 
 | Tarea | Conversación | Rama | Worktree | PR | Estado | Inicio | Merge | Rondas | Errores atrapados | Nota |
 |---|---|---|---|---|---|---|---|---|---|---|
-| T-01 Esqueleto Frontend + i18n + CI | — | — | — (en serie) | — | ⏳ Pendiente | | | | | Primera tarea tras Fase D |
+| T-01 Esqueleto Frontend + i18n + CI | T-01 esqueleto | `t-01-esqueleto-frontend` | — (en serie) | — | 🛠️ En curso | 2026-11-25 | | | | Prompt guardado en `docs/prompts/T-01.md` |
 | T-02 Esquema BD base + Auth + RLS | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-01 |
 | T-03 Login + Shell + Idioma | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-02 |
 | T-04 Config clínica multi-país | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-03 |
@@ -30,8 +30,9 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios pedidos · ✅ Fusionada · ⛔ Bloqueada
 
 ## Pendiente del humano
-- [ ] Completar Fase D (crear repo GitHub, subir archivos base, activar protección de `main` con check `"verify"`, configurar cuentas gratis y secretos en paneles)
-- [ ] Abrir conversación nueva `"Manager"` en Fase E
+- [x] Crear repo GitHub, subir archivos base y activar protección de `main` con check `"verify"`
+- [x] Abrir conversación nueva `"Manager"` en Fase E
+- [ ] Confirmar/configurar cuentas gratuitas y secretos en paneles (Vercel para previews de `T-01`, Supabase antes de `T-02`, Sentry antes de `T-12`)
 
 ## Problemas abiertos conocidos
 - Ninguno por ahora.
