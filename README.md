@@ -10,7 +10,7 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
 - **Hosting y CI:** Vercel + GitHub Actions (check obligatorio `verify`) + Sentry + dominio en Hostinger
 
 ## Primeros pasos
-1. *(Opcional en `T-01`; obligatorio desde `T-02`)* Copia `.env.example` a `.env.local` y rellena únicamente tus claves de prueba (nunca subas `.env.local` a git).
+1. *(Opcional en `T-01`/`T-02` para modo degradado y tests locales; necesario al conectar Supabase cloud)* Copia `.env.example` a `.env.local` y rellena únicamente tus claves públicas de prueba (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`; nunca subas `.env.local` a git ni expongas `SUPABASE_SERVICE_ROLE_KEY` o `SUPABASE_DB_URL` en el frontend).
 2. Instala dependencias:
    ```bash
    pnpm install
@@ -19,14 +19,16 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
    ```bash
    pnpm dev
    ```
-4. Ejecuta la verificación completa (la misma que corre el CI `verify`: lint, typecheck, tests y build):
+4. Ejecuta la verificación completa (la misma que corre el CI `verify`: lint, typecheck, tests unitarios, verificación real de BD `pnpm db:verify` y build):
    ```bash
    pnpm verify
    ```
 
-## Estructura principal (actualizada en `T-01`)
+## Estructura principal (actualizada en `T-02`)
+- `supabase/migrations/` — Migraciones SQL idempotentes (`202611250001_base_schema_rls.sql`) y guía de rollback en [supabase/README.md](supabase/README.md)
+- `tests/db/` — Harness PostgreSQL 17 (`pg` en CI / `@electric-sql/pglite` en local) y tests de integración multi-clínica RLS (`pnpm db:verify`)
 - `src/domain/` — Lógica pura sin dependencias de React ni navegador (`locale.ts`)
-- `src/services/` — Wrappers/adaptadores intercambiables (`storage/storageAdapter.ts`)
+- `src/services/` — Wrappers/adaptadores intercambiables (`storage/storageAdapter.ts`, `supabase/supabaseConfig.ts`, `supabase/supabaseClient.ts`, `supabase/database.types.ts` y `repositories/clinicAccessRepository.ts`)
 - `src/i18n/` — Traducciones `locales/en.json` y `locales/es.json` + `I18nProvider` / `useI18n`
 - `src/ui/` — Tokens semánticos (`src/index.css`), utilidades (`cn`), primitivos `shadcn/ui` y estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`)
 - `src/features/welcome/` — Pantalla de bienvenida responsive con selector EN/ES
