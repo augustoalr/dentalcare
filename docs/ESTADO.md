@@ -1,20 +1,20 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-25 14:29 GST por Manager (Inicio Coder T-02 tras APTO del Revisor)
+Última actualización: 2026-11-25 15:48 GST por Manager (Cierre T-02 + Prompt T-03 a Revisor)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-02` — Esquema Base de BD (`clinics`, `profiles`, `audit_log`) + Auth + RLS (`[DELICADA]`, prompt `APTO` por el Revisor en `8fd53b4`, entregado al Coder)
-- Bloqueado por el humano: Ninguno para ejecutar `T-02`; antes de `T-03` (Login real) habrá que crear el proyecto `dentalcare` en Supabase (la cuenta tiene actualmente 2 proyectos activos en plan Free: `ViNapp` y `dubai-run-territory`)
-- Próxima tarea propuesta: `T-03` — Pantalla de Login, Protección de Rutas y Shell (`[DELICADA]`, tras fusionar `T-02`)
+- En curso: `T-03` — Pantalla de Login, Protección de Rutas y Shell de la Clínica (`[DELICADA]`, prompt en revisión por el Revisor antes del Coder, R-02)
+- Bloqueado por el humano: Ninguno para revisar el prompt de `T-03`; **antes de probar el Login real de `T-03` en preview** habrá que crear el proyecto `dentalcare` en Supabase y cargar `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` en Vercel (tu cuenta Free tiene actualmente 2 proyectos activos: `ViNapp` y `dubai-run-territory`)
+- Próxima tarea propuesta: `T-03` (tras `APTO` del Revisor en `docs/prompts/T-03.md`)
 
 ## Tabla de tareas
 
 | Tarea | Conversación | Rama | Worktree | PR | Estado | Inicio | Merge | Rondas | Errores atrapados | Nota |
 |---|---|---|---|---|---|---|---|---|---|---|
 | T-01 Esqueleto Frontend + i18n + CI | T-01 esqueleto | `t-01-esqueleto-frontend` | — (en serie) | #3 | ✅ Fusionada | 2026-11-25 | 2026-11-25 (`d3e9aaf`) | 2 | 1 (`vite` faltante en `devDependencies`) | Preview probado por Augusto: PASÓ |
-| T-02 Esquema BD base + Auth + RLS | T-02 esquema-rls | `t-02-esquema-base-rls` | — (en serie) | — | 🛠️ En curso | 2026-11-25 | | 2 (prompt) | 3 (Revisor prompt: `SECURITY INVOKER`, RLS `RETURNING`, configs Vitest/TS) | `[DELICADA]` Prompt `APTO` por Revisor (`8fd53b4`), en manos del Coder |
-| T-03 Login + Shell + Idioma | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-02 |
+| T-02 Esquema BD base + Auth + RLS | T-02 esquema-rls | `t-02-esquema-base-rls` | — (en serie) | #7 | ✅ Fusionada | 2026-11-25 | 2026-11-25 (`5913905`) | 1 (PR) / 2 (prompt) | 3 (en prompt por Revisor; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `b1b97bd5`; CI `verify` verde al 1.er intento |
+| T-03 Login + Shell + Idioma | Revisor T-03 (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-25 | | 1 (prompt) | | `[DELICADA]` Prompt en `docs/prompts/T-03.md` pendiente de `APTO` del Revisor (R-02) |
 | T-04 Config clínica multi-país | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-03 |
 | T-05 Pacientes + Alertas rojas | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-03 |
 | T-06 Archivos clínicos privados | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
@@ -45,5 +45,5 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - Privacidad y términos → `T-14`, obligatorio antes de admitir usuarios/pacientes reales
 
 ## Métricas (actualizar al cerrar cada tarea)
-- Lead time medio: < 1 h (1 tarea) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 1
-- CI verde al primer intento: 0 / 1 · Lecciones anotadas: 2
+- Lead time medio: ~1,5 h (2 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 1
+- CI verde al primer intento: 1 / 2 · Lecciones anotadas: 3
