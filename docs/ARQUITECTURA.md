@@ -30,9 +30,9 @@ flowchart LR
 |---|---|---|
 | Interfaz PWA + i18n | Pantallas responsive en EN/ES con tokens semánticos (`src/index.css`), estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`) y manifest PWA (`public/manifest.webmanifest`) | `src/features/`, `src/ui/`, `src/i18n/`, `public/` |
 | Dominio puro | Lógica pura de idioma (`locale.ts`) en `T-01`; cálculos de céntimos/impuestos y reglas de citas/facturas en tareas posteriores | `src/domain/` |
-| Wrappers / Servicios | Wrapper `IStorageAdapter` (`BrowserStorageAdapter`, `InMemoryStorageAdapter`) en `T-01`; acceso a Supabase y `IWhatsAppService` (`WaMeAdapter`) en tareas posteriores | `src/services/` |
-| Esquema y seguridad BD | Migraciones SQL, RLS por `clinic_id` y rol, seed sintético (a partir de `T-02`) | `supabase/migrations/`, `supabase/seed.sql` |
-| CI automático | Check único `verify` (`pnpm lint && pnpm typecheck && pnpm test && pnpm build`) | `.github/workflows/ci.yml` |
+| Wrappers / Servicios | Wrapper `IStorageAdapter` (`T-01`); wrapper tipado de Supabase (`supabaseConfig.ts`, `supabaseClient.ts`, `database.types.ts`) y repositorio agnóstico `IClinicAccessRepository` (`T-02`); `IWhatsAppService` (`WaMeAdapter`) en tareas posteriores | `src/services/` |
+| Esquema y seguridad BD | Migración idempotente `202611250001_base_schema_rls.sql` (`clinics`, `profiles`, `audit_log`), esquema interno `private`, triggers `SECURITY INVOKER` anti-escalada/inmutabilidad, RLS + `GRANT` mínimos explícitos y tests reales multi-clínica (`pnpm db:verify`) en `T-02` | `supabase/migrations/`, `supabase/README.md`, `tests/db/` |
+| CI automático | Check único `verify` (`pnpm lint && pnpm typecheck && pnpm test && pnpm db:verify && pnpm build`) con servicio real `postgres:17` | `.github/workflows/ci.yml` |
 
 ## Modelo de datos canónico
 
