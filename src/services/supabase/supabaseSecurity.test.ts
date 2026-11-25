@@ -1,0 +1,167 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SupabaseClinicAccessRepository } from '@/services/repositories/clinicAccessRepository';
+import {
+  createSupabaseClient,
+  getSupabaseClient,
+  resetSupabaseClientForTests,
+  type DentalCareSupabaseClient,
+} from './supabaseClient';
+import { isSupabaseConfigured, readSupabaseConfig } from './supabaseConfig';
+
+function collectSourceFiles(dir: string): string[] {
+  const entries = readdirSync(dir);
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry);
+    const stats = statSync(fullPath);
+    if (stats.isDirectory()) {
+      files.push(...collectSourceFiles(fullPath));
+    } else if (/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(entry)) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
+  beforeEach(() => {
+    resetSupabaseClientForTests();
+  });
+
+  it('degrades safely to null when public Supabase env variables are missing or blank', () => {
+    expect(readSupabaseConfig({})).toBeNull();
+    expect(isSupabaseConfigured({})).toBe(false);
+    expect(getSupabaseClient({})).toBeNull();
+
+    expect(
+      readSupabaseConfig({
+        VITE_SUPABASE_URL: '   ',
+        VITE_SUPABASE_ANON_KEY: 'anon-key',
+      }),
+    ).toBeNull();
+
+    expect(
+      readSupabaseConfig({
+        VITE_SUPABASE_URL: 'https://example.supabase.co',
+        VITE_SUPABASE_ANON_KEY: '',
+      }),
+    ).toBeNull();
+  });
+
+  it('creates an immutable public config and typed client when both public variables are present', () => {
+    const config = readSupabaseConfig({
+      VITE_SUPABASE_URL: ' https://example.supabase.co ',
+      VITE_SUPABASE_ANON_KEY: ' public-anon-key-placeholder ',
+    });
+
+    expect(config).toEqual({
+      url: 'https://example.supabase.co',
+      anonKey: 'public-anon-key-placeholder',
+    });
+    expect(Object.isFrozen(config)).toBe(true);
+    expect(
+      isSupabaseConfigured({
+        VITE_SUPABASE_URL: 'https://example.supabase.co',
+        VITE_SUPABASE_ANON_KEY: 'public-anon-key-placeholder',
+      }),
+    ).toBe(true);
+
+    const client = createSupabaseClient(config!);
+    expect(client).toBeDefined();
+    expect(typeof client.from).toBe('function');
+  });
+
+  it('appends audit_log entries without chaining .select() so non-admin roles never hit RLS 42501', async () => {
+    const selectSpy = vi.fn();
+    const insertSpy = vi.fn().mockImplementation(() => {
+      const promise = Promise.resolve({ data: null, error: null }) as Promise<{
+        data: null;
+        error: null;
+      }> & { select: typeof selectSpy };
+      promise.select = selectSpy;
+      return promise;
+    });
+
+    const mockClient = {
+      from: vi.fn().mockReturnValue({ insert: insertSpy }),
+    } as unknown as DentalCareSupabaseClient;
+
+    const repo = new SupabaseClinicAccessRepository(mockClient);
+
+    await repo.appendAuditLog({
+      clinicId: 'clinic-1',
+      actorId: 'user-1',
+      action: 'clinic.viewed',
+      entityType: 'clinic',
+      entityId: 'clinic-1',
+      metadata: { locale: 'en' },
+    });
+
+    expect(mockClient.from).toHaveBeenCalledWith('audit_log');
+    expect(insertSpy).toHaveBeenCalledWith({
+      clinic_id: 'clinic-1',
+      actor_id: 'user-1',
+      action: 'clinic.viewed',
+      entity_type: 'clinic',
+      entity_id: 'clinic-1',
+      metadata_json: { locale: 'en' },
+    });
+    expect(selectSpy).not.toHaveBeenCalled();
+  });
+
+  it('propagates database errors from clinic repository instead of silencing them', async () => {
+    const mockClient = {
+      from: vi.fn().mockReturnValue({
+        insert: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'new row violates row-level security policy' },
+        }),
+      }),
+    } as unknown as DentalCareSupabaseClient;
+
+    const repo = new SupabaseClinicAccessRepository(mockClient);
+
+    await expect(
+      repo.appendAuditLog({
+        clinicId: 'clinic-1',
+        actorId: 'user-1',
+        action: 'clinic.viewed',
+        entityType: 'clinic',
+      }),
+    ).rejects.toThrow('Failed to append audit log entry');
+  });
+
+  it('never references private server secrets (SUPABASE_SERVICE_ROLE_KEY or SUPABASE_DB_URL) anywhere in src/', () => {
+    const srcRoot = path.resolve(process.cwd(), 'src');
+    const currentTestFile = path.resolve(
+      srcRoot,
+      'services',
+      'supabase',
+      'supabaseSecurity.test.ts',
+    );
+    const forbiddenTokens = [
+      ['SUPABASE', 'SERVICE', 'ROLE', 'KEY'].join('_'),
+      ['SUPABASE', 'DB', 'URL'].join('_'),
+    ];
+
+    const files = collectSourceFiles(srcRoot).filter(
+      (filePath) => path.resolve(filePath) !== path.resolve(currentTestFile),
+    );
+    expect(files.length).toBeGreaterThan(0);
+
+    for (const filePath of files) {
+      const content = readFileSync(filePath, 'utf8');
+      for (const token of forbiddenTokens) {
+        expect(
+          content.includes(token),
+          `Forbidden secret identifier "${token}" found in ${filePath}`,
+        ).toBe(false);
+      }
+    }
+  });
+});
