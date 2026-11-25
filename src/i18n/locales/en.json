@@ -1,0 +1,45 @@
+{
+  "app": {
+    "name": "DentalCare",
+    "tagline": "Unified dental clinic management",
+    "demoBadge": "Test environment · Synthetic data only"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español",
+    "switchToEn": "Switch language to English",
+    "switchToEs": "Switch language to Spanish"
+  },
+  "states": {
+    "loadingTitle": "Loading clinic workspace",
+    "loadingDescription": "Preparing your schedule and patient records.",
+    "errorTitle": "Unable to load information",
+    "errorDescription": "Something went wrong while loading this section. Please try again.",
+    "retry": "Try again",
+    "emptyTitle": "No records yet",
+    "emptyDescription": "Items will appear here as soon as your clinic adds them."
+  },
+  "medicalAlert": {
+    "label": "Critical medical alert",
+    "sampleTitle": "Penicillin allergy — Latex sensitivity",
+    "sampleDescription": "Verify alternative anesthesia and latex-free gloves before starting any clinical procedure."
+  },
+  "welcome": {
+    "heroTitle": "Your dental clinic, organized in one place",
+    "heroDescription": "Manage appointments, clinical notes, treatment quotes, and billing from any desktop or mobile device.",
+    "sandboxNoticeTitle": "Synthetic validation environment",
+    "sandboxNoticeBody": "This preview uses fictional test data only. Do not enter real patient information.",
+    "pillarsTitle": "Core clinic workflow",
+    "pillars": {
+      "scheduleTitle": "Daily schedule",
+      "scheduleDescription": "Clear appointment status, visit notes, and private reminders without clinical details.",
+      "patientsTitle": "Patient records",
+      "patientsDescription": "Demographics, critical medical alerts highlighted in red, and private clinical files.",
+      "billingTitle": "Quotes & billing",
+      "billingDescription": "Configurable currency and tax rates with exact calculations and payment tracking."
+    },
+    "statesPreviewTitle": "Interface resilience states",
+    "statesPreviewDescription": "Standardized visual states and high-contrast medical alerts ready for every screen."
+  }
+}

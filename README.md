@@ -9,8 +9,8 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
 - **Backend y BD:** Supabase (PostgreSQL + Auth + RLS estricto por `clinic_id` + Storage privado + Edge Functions)
 - **Hosting y CI:** Vercel + GitHub Actions (check obligatorio `verify`) + Sentry + dominio en Hostinger
 
-## Primeros pasos (disponibles tras completar `T-01`)
-1. Copia `.env.example` a `.env.local` y rellena únicamente tus claves de prueba (nunca subas `.env.local` a git).
+## Primeros pasos
+1. *(Opcional en `T-01`; obligatorio desde `T-02`)* Copia `.env.example` a `.env.local` y rellena únicamente tus claves de prueba (nunca subas `.env.local` a git).
 2. Instala dependencias:
    ```bash
    pnpm install
@@ -19,10 +19,18 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
    ```bash
    pnpm dev
    ```
-4. Ejecuta la verificación completa (la misma que corre el CI `verify`):
+4. Ejecuta la verificación completa (la misma que corre el CI `verify`: lint, typecheck, tests y build):
    ```bash
    pnpm verify
    ```
+
+## Estructura principal (actualizada en `T-01`)
+- `src/domain/` — Lógica pura sin dependencias de React ni navegador (`locale.ts`)
+- `src/services/` — Wrappers/adaptadores intercambiables (`storage/storageAdapter.ts`)
+- `src/i18n/` — Traducciones `locales/en.json` y `locales/es.json` + `I18nProvider` / `useI18n`
+- `src/ui/` — Tokens semánticos (`src/index.css`), utilidades (`cn`), primitivos `shadcn/ui` y estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`)
+- `src/features/welcome/` — Pantalla de bienvenida responsive con selector EN/ES
+- `public/manifest.webmanifest` y `public/icons/` — Configuración PWA base
 
 ## Documentación del proyecto
 - [AGENTS.md](AGENTS.md) — Reglas permanentes (R-01 a R-19) para todos los agentes
