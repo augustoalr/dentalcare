@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check no .env secret files are committed
+        run: |
+          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$'; then
+            echo "ERROR: Se detecto un archivo .env en git (viola regla R-11)."
+            exit 1
+          fi
+
+      - name: Check required project governance files
+        run: |
+          for file in AGENTS.md README.md SECURITY.md CONTRIBUTING.md docs/PRD.md docs/ARQUITECTURA.md docs/MANAGER.md docs/ESTADO.md docs/TAREAS.md docs/APRENDIZAJE.md docs/PRUEBAS.md .env.example; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Falta el archivo obligatorio $file"
+              exit 1
+            fi
+          done
+
+      - name: Setup pnpm
+        if: hashFiles('package.json') != ''
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        if: hashFiles('package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        if: hashFiles('package.json') != ''
+        run: pnpm install --frozen-lockfile
+
+      - name: Run full verify (lint, typecheck, tests, db check, build)
+        if: hashFiles('package.json') != ''
+        run: pnpm verify
+
+      - name: Base docs-only check notice
+        if: hashFiles('package.json') == ''
+        run: echo "Estructura base verificada. El pipeline completo (lint, tipos, tests, BD y build) se activara automaticamente al crear package.json en T-01."

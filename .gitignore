@@ -1,0 +1,31 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Variables de entorno (nunca subir secretos; solo .env.example va en git)
+.env
+.env.*
+!.env.example
+
+# Compilados y cachés
+dist/
+dist-ssr/
+build/
+coverage/
+.vite/
+.turbo/
+.vercel/
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Logs y sistema operativo
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
