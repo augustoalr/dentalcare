@@ -24,13 +24,13 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
    pnpm verify
    ```
 
-## Estructura principal (actualizada en `T-05`)
-- `supabase/migrations/` — Migraciones SQL idempotentes (`202611250001_base_schema_rls.sql`, `202611260001_clinic_settings_audit_trigger.sql`, `202611260002_patients_rls.sql`) y guía de rollback en [supabase/README.md](supabase/README.md)
-- `tests/db/` — Harness PostgreSQL 17 (`pg` en CI / `@electric-sql/pglite` en local) y tests de integración multi-clínica RLS y auditoría atómica (`pnpm db:verify`)
-- `src/domain/` — Lógica pura sin dependencias de React ni Supabase (`locale.ts`, `auth.ts`, `money.ts`, `patients.ts`: validación de pacientes, búsqueda segura sin tildes, detección de alertas críticas y edad exacta sin deriva horaria)
-- `src/services/` — Wrappers/adaptadores intercambiables (`auth/authService.ts` con `IAuthService`, `repositories/clinicAccessRepository.ts` con `IClinicAccessRepository`, `repositories/patientRepository.ts` con `IPatientRepository`, `storage/storageAdapter.ts` y `supabase/`)
+## Estructura principal (actualizada en `T-06`)
+- `supabase/migrations/` — Migraciones SQL idempotentes (`202611250001_base_schema_rls.sql`, `202611260001_clinic_settings_audit_trigger.sql`, `202611260002_patients_rls.sql`, `202611260003_patient_files_storage_rls.sql`) y guía de rollback en [supabase/README.md](supabase/README.md)
+- `tests/db/` — Harness PostgreSQL 17 (`pg` en CI / `@electric-sql/pglite` en local con stubs `auth` y `storage`) y tests de integración multi-clínica RLS, Storage privado y auditoría atómica (`pnpm db:verify`)
+- `src/domain/` — Lógica pura sin dependencias de React ni Supabase (`locale.ts`, `auth.ts`, `money.ts`, `patients.ts`, `patientFiles.ts`: validación de archivos clínicos MIME/10 MB/nombre, construcción segura de rutas UUID `<clinic_id>/<patient_id>/<uuid>.<ext>` y formateo de tamaños/fechas)
+- `src/services/` — Wrappers/adaptadores intercambiables (`auth/authService.ts` con `IAuthService`, `repositories/clinicAccessRepository.ts` con `IClinicAccessRepository`, `repositories/patientRepository.ts` con `IPatientRepository`, `repositories/patientFileRepository.ts` con `IPatientFileRepository` usando exclusivamente URLs firmadas temporales, `storage/storageAdapter.ts` y `supabase/`)
 - `src/features/auth/` — `AuthContext`, `LoginPage`, `ProtectedRoute`, manejo de sesión expirada, perfil ausente y modo sin configurar
-- `src/features/patients/` — `PatientsPage` (`/patients` con buscador accesible y badge rojo de alerta médica), `PatientDetailPage` (`/patients/:patientId` con `MedicalAlertBanner` en la parte superior y archivado lógico confirmado) y `PatientForm` reutilizable (datos 100% sintéticos)
+- `src/features/patients/` — `PatientsPage` (`/patients` con buscador accesible y badge rojo de alerta médica), `PatientDetailPage` (`/patients/:patientId` con `MedicalAlertBanner` en la parte superior, archivado lógico confirmado y galería privada `PatientFilesSection` con subida validada, vista previa por URL firmada temporal y archivado auditado) y `PatientForm` reutilizable (datos 100% sintéticos)
 - `src/features/settings/` — `ClinicSettingsPage` en `/settings` (edición multi-país solo para `admin`, modo de solo lectura para `dentist`/`receptionist`, plantillas rápidas EAU/España/EE. UU./Venezuela `USD` y `VES` y vista previa de cálculo en vivo)
 - `src/features/shell/` — `ClinicShell` responsive móvil-primero (barra lateral en escritorio + drawer accesible en móvil) con las 6 secciones de la clínica (`/schedule`, `/patients`, `/treatments`, `/quotes`, `/billing`, `/settings`)
 - `src/i18n/` — Traducciones 100% paritarias `locales/en.json` y `locales/es.json` + sincronización local y en `profiles.preferred_locale`

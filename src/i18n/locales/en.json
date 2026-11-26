@@ -296,6 +296,58 @@
       "archiveCancelButton": "Keep active",
       "archiveErrorTitle": "Could not archive patient",
       "archiveErrorDescription": "We could not archive this patient right now. Please try again."
+    },
+    "files": {
+      "title": "Photos & synthetic X-rays",
+      "description": "Attach and review private intraoral photos, synthetic X-rays, and PDF reports using temporary signed links.",
+      "privateBadge": "Private storage · Temporary links",
+      "syntheticNoticeTitle": "Synthetic clinical files only",
+      "syntheticNoticeBody": "Upload fictional sample images or synthetic PDFs only. Never upload real patient photographs or X-rays in this test environment.",
+      "uploadLabel": "Upload synthetic photo or X-ray",
+      "uploadButton": "Select file to upload",
+      "uploadingButton": "Uploading…",
+      "uploadHint": "Accepted formats: JPG, PNG, WEBP, PDF · Maximum size: 10 MB.",
+      "uploadSuccessTitle": "Synthetic file uploaded",
+      "uploadSuccessDescription": "Stored in your clinic's private bucket and accessible only via temporary signed URLs.",
+      "loadingTitle": "Loading clinical attachments",
+      "loadingDescription": "Retrieving this patient's private photos and synthetic X-rays.",
+      "emptyTitle": "No synthetic photos or X-rays yet",
+      "emptyDescription": "Upload a synthetic intraoral image or PDF report above to test private clinical storage.",
+      "unconfiguredTitle": "Private clinical storage unavailable",
+      "unconfiguredDescription": "Connect the public Supabase environment variables to upload and review private clinical files.",
+      "errors": {
+        "listLoadTitle": "Could not load clinical attachments",
+        "listLoadDescription": "We could not retrieve this patient's private attachments right now. Please try again.",
+        "uploadFailedTitle": "Could not upload clinical file",
+        "uploadFailedDescription": "The file could not be stored in private storage right now. Please try again.",
+        "signedUrlFailed": "Temporary link unavailable or expired. Refresh the link to view.",
+        "archiveFailedTitle": "Could not archive clinical file",
+        "archiveFailedDescription": "We could not archive this file right now. Please try again."
+      },
+      "validation": {
+        "unsupportedMimeType": "Unsupported file type. Upload a JPG, PNG, WEBP image or a PDF document.",
+        "fileEmpty": "The selected file is empty. Choose a valid file to upload.",
+        "fileTooLarge": "File exceeds the 10 MB maximum size limit.",
+        "fileNameInvalid": "Invalid file name. Rename the file (up to 255 characters) and try again."
+      },
+      "card": {
+        "previewLoading": "Generating temporary preview…",
+        "pdfPreviewLabel": "Private PDF document",
+        "imagePreviewAlt": "Synthetic clinical attachment: {name}",
+        "openButton": "Open / View",
+        "openingButton": "Preparing link…",
+        "refreshLinkButton": "Refresh link",
+        "refreshingLinkButton": "Refreshing…",
+        "archiveButton": "Archive file",
+        "uploadedOn": "Uploaded {date}"
+      },
+      "archiveConfirm": {
+        "title": "Archive this clinical file?",
+        "description": "The file will be hidden from the patient's chart, access to new signed links will be revoked immediately, and an anonymised event will be recorded in the audit log.",
+        "confirmButton": "Confirm archive",
+        "archivingButton": "Archiving…",
+        "cancelButton": "Keep active"
+      }
     }
   }
 }

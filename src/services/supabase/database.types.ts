@@ -1,4 +1,5 @@
 import type { SupportedLocale } from '@/domain/locale';
+import type { AllowedPatientFileMimeType } from '@/domain/patientFiles';
 
 export type Json =
   | string
@@ -122,6 +123,41 @@ export type PatientUpdate = {
   deleted_at?: string | null;
 };
 
+export type PatientFileRow = {
+  id: string;
+  clinic_id: string;
+  patient_id: string;
+  appointment_id: string | null;
+  storage_path: string;
+  file_name: string;
+  mime_type: AllowedPatientFileMimeType;
+  file_size_bytes: number;
+  uploaded_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type PatientFileInsert = {
+  id?: string;
+  clinic_id: string;
+  patient_id: string;
+  appointment_id?: string | null;
+  storage_path: string;
+  file_name: string;
+  mime_type: AllowedPatientFileMimeType;
+  file_size_bytes: number;
+  uploaded_by: string;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null;
+};
+
+export type PatientFileUpdate = {
+  updated_at?: string;
+  deleted_at?: string | null;
+};
+
 export type AuditLogRow = {
   id: string;
   clinic_id: string;
@@ -178,6 +214,27 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'clinics';
             referencedColumns: ['id'];
+          },
+        ];
+      };
+      patient_files: {
+        Row: PatientFileRow;
+        Insert: PatientFileInsert;
+        Update: PatientFileUpdate;
+        Relationships: [
+          {
+            foreignKeyName: 'patient_files_clinic_id_fkey';
+            columns: ['clinic_id'];
+            isOneToOne: false;
+            referencedRelation: 'clinics';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'patient_files_clinic_patient_fkey';
+            columns: ['clinic_id', 'patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['clinic_id', 'id'];
           },
         ];
       };
