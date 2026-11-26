@@ -15,7 +15,7 @@ Sistema web/PWA unificado que sustituye el caos de Excel y papel con agenda inte
 
 ## 4. MVP (Fase 1 — lo mínimo para validar el flujo completo)
 1. **Acceso multi-clínica y roles:** inicio de sesión seguro con aislamiento total por `clinic_id` (`admin`, `dentist`, `receptionist`) e idiomas **inglés y español (i18n)** desde el día 1.
-2. **Configuración de clínica multi-país:** moneda, símbolo y porcentaje de impuesto configurables por clínica (ej. AED 5% VAT, EUR 21% IVA, USD) sin acoplarse a un solo país.
+2. **Configuración de clínica multi-país (y bimoneda opcional):** moneda, símbolo y porcentaje de impuesto configurables por clínica (ej. AED 5% VAT, EUR 21% IVA, USD, Venezuela VES `Bs.` 16% IVA) más modo bimoneda opcional con tasa del día congelada (USD + Bs., `T-09b`) sin acoplarse a un solo país.
 3. **Ficha completa de paciente (con datos sintéticos):** datos demográficos, **alertas médicas críticas (alergias) destacadas en rojo**, historial de notas por cita y subida de fotos intraorales/radiografías sintéticas en almacenamiento privado.
 4. **Agenda inteligente y Panel del día:** calendario de citas con estados claros para el usuario, notas clínicas por visita y vista rápida del día.
 5. **Catálogo de tratamientos:** servicios en inglés/español con precios en céntimos enteros y duración estándar.

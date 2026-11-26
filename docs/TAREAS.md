@@ -109,6 +109,18 @@ Reglas: tareas pequeñas (1–2 días máximo, trabajo en serie adaptado a 3–6
 - Marca:
 - Estado: ⏳
 
+## T-09b — Modo Bimoneda por Clínica (Moneda Secundaria + Tasa del Día Congelada, ej. USD + Bs.)
+- Historia de usuario: Como clínica en Venezuela (o país con economía bimonetaria) quiero trabajar en USD y Bolívares (`VES` / `Bs.`) a la vez con una tasa del día configurable para mostrar presupuestos, facturas y pagos en ambas monedas sin errores contables.
+- Objetivo: Extender `clinics` con configuración opcional de moneda secundaria (`secondary_currency_code`, `secondary_currency_symbol`, `exchange_rate_micros` entero — nunca coma flotante), pantalla de actualización rápida de tasa del día en `/settings` (con auditoría en `audit_log`) y funciones puras en `src/domain/money.ts` para convertir importes entre moneda principal y secundaria congelando la tasa en cada documento futuro (`T-10`/`T-11`).
+- Criterios de aceptación:
+  - [ ] Migración SQL idempotente con restricciones `CHECK` y auditoría en `audit_log` para cada cambio de tasa del día.
+  - [ ] Motor puro de conversión exacta en `src/domain/money.ts` usando enteros (`BigInt`) probado con USD ↔ VES (`Bs.`).
+  - [ ] Clínicas de un solo país/moneda (ej. Dubái AED, España EUR) siguen operando en modo 1 moneda sin complejidad extra en pantalla.
+  - [ ] `pnpm verify` (incluyendo `db:verify`) en verde.
+- Depende de: T-04
+- Marca: `[DELICADA]`
+- Estado: ⏳
+
 ## T-10 — Presupuestos (`quotes` + `quote_items`) con Cálculo Exacto
 - Historia de usuario: Como dentista quiero crear presupuestos claros desde el catálogo de tratamientos para que el paciente sepa el coste exacto antes de empezar.
 - Objetivo: Migración de `quotes` y `quote_items` con RLS, motor puro de cálculo en céntimos e impuestos (`tax_rate_bps`) y pantalla de creación, estados y vista lista para imprimir.
@@ -117,7 +129,7 @@ Reglas: tareas pequeñas (1–2 días máximo, trabajo en serie adaptado a 3–6
   - [ ] Tests unitarios cubren redondeos, múltiples líneas, cantidades e impuestos (0%, 5%, 21%) al céntimo exacto.
   - [ ] Estados en lenguaje humano EN/ES (`draft`, `sent`, `accepted`, `rejected`, `expired`).
   - [ ] `pnpm verify` en verde.
-- Depende de: T-05, T-07
+- Depende de: T-05, T-07, T-09b
 - Marca: `[DELICADA]`
 - Estado: ⏳
 
