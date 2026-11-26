@@ -1,12 +1,12 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-26 06:02 GST por Manager (Inicio Coder T-03 tras APTO del Revisor)
+Última actualización: 2026-11-26 08:16 GST por Manager (Cierre T-03 + Prompt T-04 a Revisor)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-03` — Pantalla de Login, Protección de Rutas y Shell de la Clínica (`[DELICADA]`, prompt `APTO` por el Revisor al 1.er intento en `705aee4`, entregado al Coder)
-- Bloqueado por el humano: Ninguno para que el Coder programe `T-03`; **antes de probar el Login real de `T-03` en preview** habrá que crear el proyecto `dentalcare` en Supabase y cargar `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` en Vercel (tu cuenta Free tiene actualmente 2 proyectos activos: `ViNapp` y `dubai-run-territory`)
-- Próxima tarea propuesta: `T-04` — Configuración de la Clínica Multi-País (`[DELICADA]`, tras fusionar `T-03`)
+- En curso: `T-04` — Configuración de la Clínica Multi-País (Moneda, Símbolo e Impuesto) (`[DELICADA]`, prompt en revisión por el Revisor antes del Coder, R-02)
+- Bloqueado por el humano: Ninguno para revisar el prompt de `T-04` (confirmar que la migración SQL de `supabase/migrations/` y un usuario sintético de prueba estén aplicados en el Supabase conectado a Vercel para probar pantallas autenticadas en preview)
+- Próxima tarea propuesta: `T-04` (tras `APTO` del Revisor en `docs/prompts/T-04.md`)
 
 ## Tabla de tareas
 
@@ -14,8 +14,8 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 |---|---|---|---|---|---|---|---|---|---|---|
 | T-01 Esqueleto Frontend + i18n + CI | T-01 esqueleto | `t-01-esqueleto-frontend` | — (en serie) | #3 | ✅ Fusionada | 2026-11-25 | 2026-11-25 (`d3e9aaf`) | 2 | 1 (`vite` faltante en `devDependencies`) | Preview probado por Augusto: PASÓ |
 | T-02 Esquema BD base + Auth + RLS | T-02 esquema-rls | `t-02-esquema-base-rls` | — (en serie) | #7 | ✅ Fusionada | 2026-11-25 | 2026-11-25 (`5913905`) | 1 (PR) / 2 (prompt) | 3 (en prompt por Revisor; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `b1b97bd5`; CI `verify` verde al 1.er intento |
-| T-03 Login + Shell + Idioma | T-03 login-shell | `t-03-login-shell` | — (en serie) | — | 🛠️ En curso | 2026-11-26 | | 1 (prompt) | 0 | `[DELICADA]` Prompt `APTO` por Revisor (`705aee4`), en manos del Coder |
-| T-04 Config clínica multi-país | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-03 |
+| T-03 Login + Shell + Idioma | T-03 login-shell | `t-03-login-shell` | — (en serie) | #10 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`64004d3`) | 2 (PR) / 1 (prompt) | 2 (en PR por Revisor: `signOut` local fallback y refs síncronos) | `[DELICADA]` Revisor `APROBADO` en `5f2e4942`; preview probado por Augusto: PASÓ |
+| T-04 Config clínica multi-país | Revisor T-04 (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-26 | | 1 (prompt) | | `[DELICADA]` Prompt en `docs/prompts/T-04.md` pendiente de `APTO` del Revisor (R-02) |
 | T-05 Pacientes + Alertas rojas | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-03 |
 | T-06 Archivos clínicos privados | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
 | T-07 Catálogo de tratamientos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-04 |
@@ -32,8 +32,9 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 ## Pendiente del humano
 - [x] Crear repo GitHub, subir archivos base y activar protección de `main` con check `"verify"`
 - [x] Abrir conversación nueva `"Manager"` en Fase E
-- [x] Previews automáticos de Vercel conectados y verificados en PR #3 (`T-01`)
-- [ ] Crear proyecto Supabase `dentalcare` y configurar secretos (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`) antes de `T-03` (la cuenta tiene actualmente 2 proyectos activos en plan Free: `ViNapp` y `dubai-run-territory`)
+- [x] Previews automáticos de Vercel conectados y verificados en PR #3 (`T-01`) y PR #10 (`T-03`)
+- [x] Variables públicas de Supabase configuradas en Vercel (verificado en vivo en preview de `T-03`)
+- [ ] Confirmar migraciones de `supabase/migrations/` aplicadas y usuario sintético `admin` creado en el proyecto Supabase conectado a Vercel para probar pantallas autenticadas en preview de `T-04`
 - [ ] Configurar cuenta gratuita de Sentry antes de `T-12`
 
 ## Problemas abiertos conocidos
@@ -45,5 +46,5 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - Privacidad y términos → `T-14`, obligatorio antes de admitir usuarios/pacientes reales
 
 ## Métricas (actualizar al cerrar cada tarea)
-- Lead time medio: ~1,5 h (2 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 1
-- CI verde al primer intento: 1 / 2 · Lecciones anotadas: 3
+- Lead time medio: ~2 h (3 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 2
+- CI verde al primer intento: 2 / 3 · Lecciones anotadas: 4
