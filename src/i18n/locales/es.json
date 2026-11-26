@@ -2,7 +2,9 @@
   "app": {
     "name": "DentalCare",
     "tagline": "Gestión odontológica unificada",
-    "demoBadge": "Entorno de pruebas · Solo datos sintéticos"
+    "demoBadge": "Entorno de pruebas · Solo datos sintéticos",
+    "sandboxNoticeTitle": "Entorno de validación sintético",
+    "sandboxNoticeBody": "Utiliza únicamente cuentas de prueba y datos ficticios. Nunca introduzcas información real de pacientes."
   },
   "language": {
     "label": "Idioma",
@@ -25,21 +27,96 @@
     "sampleTitle": "Alergia a la penicilina — Sensibilidad al látex",
     "sampleDescription": "Verificar anestesia alternativa y guantes sin látex antes de iniciar cualquier procedimiento clínico."
   },
-  "welcome": {
-    "heroTitle": "Tu clínica dental, organizada en un solo lugar",
-    "heroDescription": "Gestiona citas, notas clínicas, presupuestos y facturación desde cualquier ordenador o móvil.",
-    "sandboxNoticeTitle": "Entorno de validación sintético",
-    "sandboxNoticeBody": "Esta vista previa utiliza únicamente datos ficticios de prueba. No introduzcas datos reales de pacientes.",
-    "pillarsTitle": "Flujo principal de la clínica",
-    "pillars": {
-      "scheduleTitle": "Agenda del día",
-      "scheduleDescription": "Estado claro de citas, notas por visita y recordatorios privados sin datos clínicos.",
-      "patientsTitle": "Ficha de pacientes",
-      "patientsDescription": "Datos básicos, alertas médicas críticas destacadas en rojo y archivos clínicos privados.",
-      "billingTitle": "Presupuestos y cobros",
-      "billingDescription": "Moneda e impuestos configurables con cálculo exacto y seguimiento de pagos."
+  "roles": {
+    "admin": "Administrador",
+    "dentist": "Dentista",
+    "receptionist": "Recepcionista"
+  },
+  "auth": {
+    "loginTitle": "Inicia sesión en tu clínica",
+    "loginSubtitle": "Accede de forma segura a tu agenda, fichas de pacientes, presupuestos y facturación.",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "doctora@clinica.ejemplo",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "Introduce tu contraseña",
+    "submitButton": "Iniciar sesión",
+    "submittingButton": "Iniciando sesión…",
+    "signOutButton": "Cerrar sesión",
+    "signingOutButton": "Cerrando sesión…",
+    "checkingSessionTitle": "Verificando tu sesión",
+    "checkingSessionDescription": "Cargando el espacio de tu clínica y tus permisos de acceso.",
+    "sessionExpiredTitle": "Tu sesión ha caducado",
+    "sessionExpiredBody": "Por seguridad de tu clínica, vuelve a iniciar sesión para continuar.",
+    "unconfiguredTitle": "Conexión al servidor no configurada",
+    "unconfiguredBody": "El inicio de sesión no está disponible hasta configurar las variables públicas de entorno de Supabase.",
+    "profileMissingTitle": "No se encontró un perfil activo de clínica",
+    "profileMissingDescription": "Tu cuenta ha iniciado sesión, pero no tiene un perfil activo asignado a una clínica. Contacta con la administración de tu clínica o cierra sesión para usar otra cuenta.",
+    "sessionLoadErrorTitle": "No se pudo cargar el espacio de tu clínica",
+    "sessionLoadErrorDescription": "No pudimos comprobar tu perfil de clínica por un problema de conexión. Inténtalo de nuevo o cierra sesión.",
+    "validation": {
+      "emailRequired": "Introduce tu correo electrónico.",
+      "emailInvalid": "Introduce un correo electrónico válido.",
+      "passwordRequired": "Introduce tu contraseña."
     },
-    "statesPreviewTitle": "Estados visuales del sistema",
-    "statesPreviewDescription": "Estados estandarizados y alertas médicas de alto contraste listos para cada pantalla."
+    "errors": {
+      "invalidCredentialsTitle": "Correo o contraseña incorrectos",
+      "invalidCredentialsBody": "Revisa tus datos de acceso e inténtalo de nuevo.",
+      "emailNotConfirmedTitle": "Confirmación de correo pendiente",
+      "emailNotConfirmedBody": "Confirma tu dirección de correo electrónico antes de iniciar sesión.",
+      "rateLimitedTitle": "Demasiados intentos de acceso",
+      "rateLimitedBody": "Espera unos instantes antes de volver a intentarlo.",
+      "networkErrorTitle": "Problema de conexión",
+      "networkErrorBody": "No se pudo conectar con el servicio de acceso. Comprueba tu conexión a internet e inténtalo de nuevo.",
+      "unknownErrorTitle": "No se pudo iniciar sesión",
+      "unknownErrorBody": "Ocurrió un problema inesperado al iniciar sesión. Inténtalo de nuevo."
+    }
+  },
+  "nav": {
+    "ariaLabel": "Navegación de la clínica",
+    "openMenu": "Abrir menú de navegación",
+    "closeMenu": "Cerrar menú de navegación",
+    "mobileDrawerTitle": "Navegación",
+    "schedule": "Agenda",
+    "patients": "Pacientes",
+    "treatments": "Tratamientos",
+    "quotes": "Presupuestos",
+    "billing": "Facturación",
+    "settings": "Ajustes"
+  },
+  "shell": {
+    "skipToContent": "Saltar al contenido principal",
+    "activeClinicLabel": "Clínica activa",
+    "signedInAsLabel": "Sesión iniciada como",
+    "localeSyncWarning": "El idioma se cambió en este dispositivo, pero no se pudo guardar en tu perfil en este momento.",
+    "dismissNotice": "Cerrar aviso"
+  },
+  "sections": {
+    "emptyBadge": "Módulo listo para su próxima activación",
+    "emptyTitle": "Esta sección todavía no muestra registros",
+    "emptyDescription": "Aquí no se precargan pacientes ni citas ficticias de relleno. Las funciones operativas de este módulo se activarán en su tarea correspondiente.",
+    "schedule": {
+      "title": "Agenda de citas",
+      "description": "Gestiona las citas del día, sus estados, notas clínicas por visita y recordatorios privados por WhatsApp."
+    },
+    "patients": {
+      "title": "Pacientes",
+      "description": "Consulta fichas de pacientes, alertas médicas críticas destacadas en rojo y archivos clínicos privados."
+    },
+    "treatments": {
+      "title": "Catálogo de tratamientos",
+      "description": "Administra los tratamientos dentales estándar, duraciones y precios exactos en la moneda de tu clínica."
+    },
+    "quotes": {
+      "title": "Presupuestos",
+      "description": "Prepara presupuestos claros con cálculo exacto de impuestos listos para revisar con cada paciente."
+    },
+    "billing": {
+      "title": "Facturación y pagos",
+      "description": "Emite facturas, registra cobros parciales o totales y mantén una trazabilidad contable completa."
+    },
+    "settings": {
+      "title": "Ajustes de la clínica",
+      "description": "Configura los datos de la clínica, moneda, símbolo, porcentaje de impuesto y preferencias del equipo."
+    }
   }
 }

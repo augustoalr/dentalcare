@@ -1,25 +1,25 @@
 # ARQUITECTURA — DentalCare
 
-Última actualización: 2026-11-25
+Última actualización: 2026-11-26
 
 ## Diagrama general
 
 ```mermaid
 flowchart LR
-    U[Usuario: Admin / Dentista / Recepción] --> W[Frontend PWA: React 19 + Vite + TS + Tailwind + shadcn/ui]
+    U[Usuario: Admin / Dentista / Recepción] --> W[Frontend PWA: React 19 + Router + ClinicShell]
     W --> WRAP[Capa de Servicios / Wrappers]
-    WRAP --> AUTH[Supabase Auth]
-    WRAP --> DB[(PostgreSQL + RLS por clinic_id)]
+    WRAP --> AUTH[IAuthService -> Supabase Auth]
+    WRAP --> DB[(IClinicAccessRepository -> PostgreSQL + RLS)]
     WRAP --> ST[Supabase Storage Privado]
     WRAP --> WA[IWhatsAppService -> WaMeAdapter MVP]
     W -. errores sin PII .-> SEN[Sentry Free]
-    GH[GitHub Actions: verify] --> V[Vercel: Previews + Producción]
+    GH[GitHub Actions: verify] --> V[Vercel SPA Rewrites: Previews + Producción]
 ```
 
 ## Principios estructurales
 1. **Separación Estricta de Responsabilidades (SoC):**
-   - `src/domain/` — Lógica pura (cálculo de presupuestos/facturas en céntimos enteros, validaciones, tipos). Sin imports de React ni Supabase.
-   - `src/services/` — Interfaces y wrappers de servicios externos (`IWhatsAppService`, repositorios de datos, storage). Si mañana cambia un proveedor, solo se edita su adaptador.
+   - `src/domain/` — Lógica pura (`locale.ts`, `auth.ts`, futuros cálculos en céntimos enteros, validaciones y tipos). Sin imports de React ni Supabase.
+   - `src/services/` — Interfaces y wrappers de servicios externos (`IAuthService`, `IClinicAccessRepository`, `IStorageAdapter`, futuro `IWhatsAppService`). Ni `src/features/` ni `src/ui/` importan `@supabase/supabase-js`.
    - `src/ui/` y `src/features/` — Componentes visuales "tontos" y vistas con tokens semánticos de diseño, traducciones i18n (EN/ES) y manejo de estados Loading / Error / Empty / Overflow.
 2. **Inmutabilidad por defecto:** los objetos de estado y cálculos financieros nunca se mutan en sitio.
 3. **Dinero e impuestos exactos:** importes en céntimos enteros (`_cents`) y tasas fiscales en puntos básicos enteros (`_bps`, ej. `500` = 5,00%).
@@ -28,11 +28,12 @@ flowchart LR
 
 | Pieza | Qué hace | Dónde está |
 |---|---|---|
-| Interfaz PWA + i18n | Pantallas responsive en EN/ES con tokens semánticos (`src/index.css`), estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`) y manifest PWA (`public/manifest.webmanifest`) | `src/features/`, `src/ui/`, `src/i18n/`, `public/` |
-| Dominio puro | Lógica pura de idioma (`locale.ts`) en `T-01`; cálculos de céntimos/impuestos y reglas de citas/facturas en tareas posteriores | `src/domain/` |
-| Wrappers / Servicios | Wrapper `IStorageAdapter` (`T-01`); wrapper tipado de Supabase (`supabaseConfig.ts`, `supabaseClient.ts`, `database.types.ts`) y repositorio agnóstico `IClinicAccessRepository` (`T-02`); `IWhatsAppService` (`WaMeAdapter`) en tareas posteriores | `src/services/` |
-| Esquema y seguridad BD | Migración idempotente `202611250001_base_schema_rls.sql` (`clinics`, `profiles`, `audit_log`), esquema interno `private`, triggers `SECURITY INVOKER` anti-escalada/inmutabilidad, RLS + `GRANT` mínimos explícitos y tests reales multi-clínica (`pnpm db:verify`) en `T-02` | `supabase/migrations/`, `supabase/README.md`, `tests/db/` |
-| CI automático | Check único `verify` (`pnpm lint && pnpm typecheck && pnpm test && pnpm db:verify && pnpm build`) con servicio real `postgres:17` | `.github/workflows/ci.yml` |
+| Autenticación, Rutas y Shell (`T-03`) | Flujo de acceso en `/login`, guardia `ProtectedRoute`, `AuthContext` (control de condiciones de carrera, detección de sesión expirada vs. cierre manual, perfil ausente y modo degradado sin configurar), `ClinicShell` responsive (sidebar escritorio + drawer móvil accesible) con las 6 rutas de clínica y rewrite SPA en `vercel.json` | `src/features/auth/`, `src/features/shell/`, `src/App.tsx`, `vercel.json` |
+| Interfaz PWA + i18n (`T-01`, `T-03`) | Pantallas en EN/ES con tokens semánticos (`src/index.css`), estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`), sincronización de idioma local + `profiles.preferred_locale` y manifest PWA | `src/ui/`, `src/i18n/`, `public/` |
+| Dominio puro (`T-01`, `T-03`) | Idioma (`locale.ts`) y reglas puras de autenticación/rutas (`auth.ts`: `sanitizeReturnTo` anti-open-redirect, `validateLoginCredentials`, `mapAuthErrorToCode`, `getNavigationItems`, `getRoleLabelKey`) | `src/domain/` |
+| Wrappers / Servicios (`T-01`–`T-03`) | `IStorageAdapter` (`T-01`), cliente tipado Supabase (`T-02`), `IAuthService` (`SupabaseAuthService`) y `IClinicAccessRepository` (`getActiveClinic`, `getCurrentProfile`, `updatePreferredLocale`, `appendAuditLog`) | `src/services/` |
+| Esquema y seguridad BD (`T-02`) | Migración idempotente `202611250001_base_schema_rls.sql` (`clinics`, `profiles`, `audit_log`), esquema interno `private`, triggers `SECURITY INVOKER` anti-escalada/inmutabilidad, RLS + `GRANT` mínimos explícitos y tests reales multi-clínica (`pnpm db:verify`) | `supabase/migrations/`, `supabase/README.md`, `tests/db/` |
+| CI automático (`T-01`, `T-02`) | Check único `verify` (`pnpm lint && pnpm typecheck && pnpm test && pnpm db:verify && pnpm build`) con servicio real `postgres:17` | `.github/workflows/ci.yml` |
 
 ## Modelo de datos canónico
 
@@ -41,7 +42,7 @@ Todas las tablas de negocio incluyen `clinic_id` (multi-tenant obligatorio) y `d
 | Tabla | Clave | Columnas principales | Quién puede leer/escribir (RLS) |
 |---|---|---|---|
 | `clinics` | `id` | `name`, `currency_code`, `currency_symbol`, `tax_rate_bps`, `tax_label`, `timezone`, `default_locale`, `deleted_at` | Lectura: miembros de la clínica · Escritura: solo `admin` de esa clínica |
-| `profiles` | `id` (= `auth.users.id`) | `clinic_id`, `full_name`, `role` (`admin` / `dentist` / `receptionist`), `preferred_locale`, `is_active`, `deleted_at` | Lectura: misma clínica · Escritura: propio idioma o `admin` de la clínica |
+| `profiles` | `id` (= `auth.users.id`) | `clinic_id`, `full_name`, `role` (`admin` / `dentist` / `receptionist`), `preferred_locale`, `is_active`, `deleted_at` | Lectura: misma clínica · Escritura: propio idioma (`preferred_locale`) o `admin` de la clínica |
 | `patients` | `id` | `clinic_id`, `full_name`, `phone`, `email`, `date_of_birth`, `medical_alerts`, `general_notes`, `deleted_at` | Lectura/escritura: roles activos de la misma `clinic_id` |
 | `patient_files` | `id` | `clinic_id`, `patient_id`, `appointment_id`, `storage_path`, `file_name`, `mime_type`, `file_size_bytes`, `uploaded_by`, `deleted_at` | Lectura/escritura: misma `clinic_id` (+ RLS en Storage `clinic_id/patient_id/...`) |
 | `appointments` | `id` | `clinic_id`, `patient_id`, `dentist_id`, `starts_at`, `ends_at`, `status`, `reason`, `clinical_notes`, `reminder_sent_at`, `deleted_at` | Lectura/escritura: misma `clinic_id` (notas clínicas reservadas a `dentist`/`admin`) |
@@ -52,9 +53,10 @@ Todas las tablas de negocio incluyen `clinic_id` (multi-tenant obligatorio) y `d
 | `audit_log` | `id` | `clinic_id`, `actor_id`, `action`, `entity_type`, `entity_id`, `metadata_json`, `created_at` | **Inmutable:** solo `INSERT` (automático/controlado) y `SELECT` por `admin` de la misma `clinic_id`; prohibidos `UPDATE` y `DELETE` |
 
 ## Flujos importantes
-1. **Aislamiento multi-clínica:** cada sesión obtiene su `clinic_id` y `role` desde `profiles` mediante función SQL segura; las políticas RLS filtran todas las filas antes de salir de PostgreSQL.
-2. **Recordatorio por WhatsApp seguro:** el servicio construye un mensaje corto con nombre de clínica, fecha y hora (sin diagnóstico, tratamiento ni alertas) y lo entrega a `IWhatsAppService` (`WaMeWhatsAppAdapter` en MVP).
-3. **Presupuesto → Factura → Pago:** los totales se calculan con funciones puras en céntimos enteros, congelando `tax_rate_bps` y precios unitarios en la factura para que cambios futuros en el catálogo no alteren documentos pasados.
+1. **Autenticación y sesión segura (`T-03`):** `ProtectedRoute` redirige usuarios sin sesión a `/login` preservando la ruta interna sanitizada (`sanitizeReturnTo`). Al iniciar sesión vía `IAuthService`, `AuthContext` carga en paralelo `getCurrentProfile` y `getActiveClinic`, sincroniza `preferred_locale` y distingue cierres manuales de expiraciones involuntarias de sesión. Al cambiar EN/ES en el shell, el idioma se guarda tanto localmente como en `public.profiles` enviando únicamente `{ preferred_locale }` para cumplir el trigger `private.guard_profile_update()`.
+2. **Aislamiento multi-clínica (`T-02`):** cada sesión obtiene su `clinic_id` y `role` desde `profiles` mediante función SQL segura; las políticas RLS filtran todas las filas antes de salir de PostgreSQL.
+3. **Recordatorio por WhatsApp seguro (`T-09`):** el servicio construirá un mensaje corto con nombre de clínica, fecha y hora (sin diagnóstico, tratamiento ni alertas) y lo entregará a `IWhatsAppService` (`WaMeWhatsAppAdapter` en MVP).
+4. **Presupuesto → Factura → Pago (`T-10`–`T-11`):** los totales se calcularán con funciones puras en céntimos enteros, congelando `tax_rate_bps` y precios unitarios en la factura para que cambios futuros en el catálogo no alteren documentos pasados.
 
 ## Decisiones
 - Ver [docs/adr/0001-stack.md](adr/0001-stack.md)
