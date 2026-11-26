@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { Pool, type PoolClient } from 'pg';
@@ -212,9 +212,25 @@ class PgliteHarness implements ITestDbHarness {
   }
 }
 
+export function listMigrationFiles(): readonly string[] {
+  const migrationsDir = path.resolve(process.cwd(), 'supabase', 'migrations');
+  return Object.freeze(
+    readdirSync(migrationsDir)
+      .filter((entry) => entry.endsWith('.sql'))
+      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+  );
+}
+
 export function readMigrationSql(filename: string): string {
   const migrationPath = path.resolve(process.cwd(), 'supabase', 'migrations', filename);
   return readFileSync(migrationPath, 'utf8');
+}
+
+export async function applyAllMigrations(db: ITestDbHarness): Promise<void> {
+  const migrationFiles = listMigrationFiles();
+  for (const filename of migrationFiles) {
+    await db.execSql(readMigrationSql(filename));
+  }
 }
 
 export function extractPgErrorCode(error: unknown): string | undefined {

@@ -1,13 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  applyAllMigrations,
   createTestDbHarness,
   extractPgErrorCode,
-  readMigrationSql,
   type ITestDbHarness,
 } from './testDbHarness';
-
-const BASE_MIGRATION_FILE = '202611250001_base_schema_rls.sql';
 
 interface SyntheticFixtures {
   readonly clinicA: string;
@@ -59,15 +57,13 @@ async function expectPgError(
 describe('T-02 Base schema, multi-clinic RLS, anti-escalation and immutable audit_log', () => {
   let db: ITestDbHarness;
   let fixtures: SyntheticFixtures;
-  let migrationSql: string;
 
   beforeAll(async () => {
     db = await createTestDbHarness();
     fixtures = createSyntheticFixtures();
-    migrationSql = readMigrationSql(BASE_MIGRATION_FILE);
 
-    // First application of the migration
-    await db.execSql(migrationSql);
+    // First application of all ordered migrations
+    await applyAllMigrations(db);
 
     // Seed 2 synthetic clinics (100% fictional data)
     await db.queryAsOwner(
@@ -135,8 +131,8 @@ describe('T-02 Base schema, multi-clinic RLS, anti-escalation and immutable audi
   });
 
   it('1. Migration is idempotent when applied twice and activates real RLS under authenticated role', async () => {
-    // Re-apply full migration on already-populated database
-    await expect(db.execSql(migrationSql)).resolves.toBeUndefined();
+    // Re-apply full migration chain on already-populated database
+    await expect(applyAllMigrations(db)).resolves.toBeUndefined();
 
     // Confirm RLS is enabled on all 3 tables
     const rlsStatus = await db.queryAsOwner<{ tablename: string; rowsecurity: boolean }>(

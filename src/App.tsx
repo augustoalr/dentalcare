@@ -3,6 +3,7 @@ import { DEFAULT_AUTHENTICATED_PATH, getNavigationItems } from '@/domain/auth';
 import { AuthProvider } from '@/features/auth/AuthContext';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
+import { ClinicSettingsPage } from '@/features/settings/ClinicSettingsPage';
 import { ClinicShell } from '@/features/shell/ClinicShell';
 import { SectionPlaceholderPage } from '@/features/shell/SectionPlaceholderPage';
 import { I18nProvider } from '@/i18n';
@@ -28,7 +29,13 @@ export function AppRoutes() {
           <Route
             key={item.id}
             path={item.path}
-            element={<SectionPlaceholderPage sectionId={item.id} />}
+            element={
+              item.id === 'settings' ? (
+                <ClinicSettingsPage />
+              ) : (
+                <SectionPlaceholderPage sectionId={item.id} />
+              )
+            }
           />
         ))}
         <Route

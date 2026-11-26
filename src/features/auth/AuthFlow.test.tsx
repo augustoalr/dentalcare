@@ -111,11 +111,20 @@ function createMockRepository(overrides?: {
         : SYNTHETIC_PROFILE,
     );
   const updatePreferredLocaleMock = vi.fn().mockResolvedValue(undefined);
+  const updateClinicSettingsMock = vi
+    .fn()
+    .mockImplementation(async (_clinicId, input) =>
+      Object.freeze({
+        id: SYNTHETIC_CLINIC.id,
+        ...input,
+      }),
+    );
 
   const repository: IClinicAccessRepository = {
     getActiveClinic: getActiveClinicMock,
     getCurrentProfile: getCurrentProfileMock,
     updatePreferredLocale: updatePreferredLocaleMock,
+    updateClinicSettings: updateClinicSettingsMock,
     appendAuditLog: vi.fn().mockResolvedValue(undefined),
   };
 

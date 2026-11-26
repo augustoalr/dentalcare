@@ -118,5 +118,81 @@
       "title": "Clinic settings",
       "description": "Configure clinic identity, currency symbol, tax rate, and team preferences."
     }
+  },
+  "settings": {
+    "title": "Clinic settings",
+    "description": "Configure your clinic name, billing currency, symbol, tax percentage, timezone, and default language.",
+    "adminBadge": "Editable by administrator",
+    "readOnlyBadge": "Read-only view",
+    "readOnlyTitle": "Read-only clinic configuration",
+    "readOnlyDescription": "Only an Administrator can modify clinic settings. You can review your clinic's active currency and tax configuration below.",
+    "auditNotice": "Every saved change is automatically recorded in your clinic's immutable audit log.",
+    "emptyTitle": "Clinic configuration unavailable",
+    "emptyDescription": "No active clinic configuration was found for your current workspace.",
+    "presets": {
+      "title": "Regional quick templates",
+      "description": "Pre-fill standard currency, tax, timezone, and default language values. Changes are only saved when you press Save changes.",
+      "uae": "UAE · AED · 5% VAT",
+      "spain": "Spain · EUR · 21% IVA",
+      "usa": "USA · USD · 0% Tax",
+      "venezuelaUsd": "Venezuela · USD · 0% IVA",
+      "venezuelaVes": "Venezuela · VES (Bs.) · 16% IVA"
+    },
+    "form": {
+      "cardTitle": "Identity, currency & tax",
+      "cardDescription": "Treatments, quotes, and invoices across your clinic use these settings for exact cent-level calculations.",
+      "nameLabel": "Clinic name",
+      "namePlaceholder": "Al Noor Synthetic Dental Clinic",
+      "currencyCodeLabel": "Currency code",
+      "currencyCodePlaceholder": "AED",
+      "currencyCodeHint": "3-letter ISO code (for example AED, EUR, USD).",
+      "currencySymbolLabel": "Currency symbol",
+      "currencySymbolPlaceholder": "AED",
+      "currencySymbolHint": "Shown next to prices (for example AED, €, $).",
+      "taxRateLabel": "Tax rate (%)",
+      "taxRatePlaceholder": "5",
+      "taxRateHint": "Percentage from 0 to 100 (up to 2 decimal places).",
+      "taxLabelLabel": "Tax label",
+      "taxLabelPlaceholder": "VAT",
+      "taxLabelHint": "Short tax name shown on quotes and invoices (VAT, IVA, Tax).",
+      "timezoneLabel": "Clinic timezone",
+      "timezonePlaceholder": "Asia/Dubai",
+      "timezoneHint": "Standard IANA timezone used for appointment scheduling.",
+      "defaultLocaleLabel": "Default clinic language",
+      "defaultLocaleHint": "Default language for clinic documents and new profiles.",
+      "saveButton": "Save changes",
+      "savingButton": "Saving…",
+      "resetButton": "Reset changes"
+    },
+    "feedback": {
+      "savedTitle": "Clinic settings saved",
+      "savedDescription": "Your clinic configuration is active and has been recorded in the audit log.",
+      "saveErrorTitle": "Could not save clinic settings",
+      "saveErrorDescription": "We could not save your changes right now. Your edits are still on screen so you can review and try again."
+    },
+    "validation": {
+      "nameRequired": "Enter the clinic name.",
+      "nameTooLong": "Clinic name must be 120 characters or fewer.",
+      "currencyCodeRequired": "Enter a 3-letter currency code.",
+      "currencyCodeInvalid": "Enter a valid 3-letter ISO code such as AED, EUR, or USD.",
+      "currencySymbolRequired": "Enter a currency symbol.",
+      "currencySymbolTooLong": "Currency symbol must be 10 characters or fewer.",
+      "taxRateInvalid": "Enter a valid tax percentage between 0 and 100 (up to 2 decimals).",
+      "taxLabelRequired": "Enter a tax label such as VAT, IVA, or Tax.",
+      "taxLabelTooLong": "Tax label must be 20 characters or fewer.",
+      "timezoneRequired": "Enter the clinic timezone.",
+      "timezoneTooLong": "Timezone must be 64 characters or fewer.",
+      "defaultLocaleInvalid": "Select a supported default language."
+    },
+    "preview": {
+      "badge": "Calculation preview",
+      "title": "Live format & tax preview",
+      "description": "Sample calculation for a 100.00 treatment using the configuration on this page.",
+      "subtotalLabel": "Sample subtotal",
+      "totalLabel": "Total with tax",
+      "activeCurrencyLabel": "ISO currency",
+      "activeTimezoneLabel": "Timezone",
+      "activeDefaultLocaleLabel": "Default language"
+    }
   }
 }

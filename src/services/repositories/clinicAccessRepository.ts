@@ -1,4 +1,5 @@
 import type { SupportedLocale } from '@/domain/locale';
+import type { ClinicSettingsInput } from '@/domain/money';
 import type {
   ClinicRole,
   ClinicRow,
@@ -48,6 +49,10 @@ export interface IClinicAccessRepository {
   getActiveClinic(): Promise<ClinicSummary | null>;
   getCurrentProfile(userId: string): Promise<UserProfile | null>;
   updatePreferredLocale(userId: string, locale: SupportedLocale): Promise<void>;
+  updateClinicSettings(
+    clinicId: string,
+    input: ClinicSettingsInput,
+  ): Promise<ClinicSummary>;
   appendAuditLog(input: CreateAuditLogInput): Promise<void>;
 }
 
@@ -135,6 +140,48 @@ export class SupabaseClinicAccessRepository implements IClinicAccessRepository {
     if (error) {
       throw new Error(`Failed to update preferred locale: ${error.message}`);
     }
+  }
+
+  async updateClinicSettings(
+    clinicId: string,
+    input: ClinicSettingsInput,
+  ): Promise<ClinicSummary> {
+    const normalizedClinicId = clinicId.trim();
+    if (normalizedClinicId.length === 0) {
+      throw new Error('Cannot update clinic settings without a valid clinicId');
+    }
+
+    // IMPORTANT: Send ONLY the 7 editable clinic configuration columns (never `id`,
+    // `created_at`, `updated_at`, or `deleted_at`). Do NOT call `appendAuditLog`
+    // manually here because `trg_clinics_30_audit_settings` records the audit entry
+    // atomically inside PostgreSQL within the same transaction.
+    const { data, error } = await this.client
+      .from('clinics')
+      .update({
+        name: input.name,
+        currency_code: input.currencyCode,
+        currency_symbol: input.currencySymbol,
+        tax_rate_bps: input.taxRateBps,
+        tax_label: input.taxLabel,
+        timezone: input.timezone,
+        default_locale: input.defaultLocale,
+      })
+      .eq('id', normalizedClinicId)
+      .is('deleted_at', null)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update clinic settings: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error(
+        'Failed to update clinic settings: clinic record not found',
+      );
+    }
+
+    return mapClinicRow(data);
   }
 
   async appendAuditLog(input: CreateAuditLogInput): Promise<void> {

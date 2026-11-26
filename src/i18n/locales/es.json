@@ -118,5 +118,81 @@
       "title": "Ajustes de la clínica",
       "description": "Configura los datos de la clínica, moneda, símbolo, porcentaje de impuesto y preferencias del equipo."
     }
+  },
+  "settings": {
+    "title": "Ajustes de la clínica",
+    "description": "Configura el nombre de tu clínica, moneda de facturación, símbolo, porcentaje de impuesto, zona horaria e idioma predeterminado.",
+    "adminBadge": "Editable por administración",
+    "readOnlyBadge": "Vista de solo lectura",
+    "readOnlyTitle": "Configuración en modo de solo lectura",
+    "readOnlyDescription": "Solo un Administrador puede modificar la configuración de la clínica. Abajo puedes consultar la moneda y el impuesto activos.",
+    "auditNotice": "Cada cambio guardado queda registrado automáticamente en el historial de auditoría inmutable de tu clínica.",
+    "emptyTitle": "Configuración de clínica no disponible",
+    "emptyDescription": "No se encontró una configuración activa de clínica para tu sesión actual.",
+    "presets": {
+      "title": "Plantillas rápidas por país",
+      "description": "Rellena moneda, impuesto, zona horaria e idioma estándar con un clic. Los cambios no se guardan hasta pulsar Guardar cambios.",
+      "uae": "EAU · AED · 5% VAT",
+      "spain": "España · EUR · 21% IVA",
+      "usa": "EE. UU. · USD · 0% Tax",
+      "venezuelaUsd": "Venezuela · USD · 0% IVA",
+      "venezuelaVes": "Venezuela · VES (Bs.) · 16% IVA"
+    },
+    "form": {
+      "cardTitle": "Identidad, moneda e impuestos",
+      "cardDescription": "Los tratamientos, presupuestos y facturas de la clínica utilizan estos valores para calcular importes al céntimo exacto.",
+      "nameLabel": "Nombre de la clínica",
+      "namePlaceholder": "Clínica Dental Sintética Al Noor",
+      "currencyCodeLabel": "Código de moneda",
+      "currencyCodePlaceholder": "AED",
+      "currencyCodeHint": "Código ISO de 3 letras (por ejemplo AED, EUR, USD).",
+      "currencySymbolLabel": "Símbolo de moneda",
+      "currencySymbolPlaceholder": "AED",
+      "currencySymbolHint": "Se muestra junto a los importes (por ejemplo AED, €, $).",
+      "taxRateLabel": "Porcentaje de impuesto (%)",
+      "taxRatePlaceholder": "5",
+      "taxRateHint": "Porcentaje entre 0 y 100 (hasta 2 decimales).",
+      "taxLabelLabel": "Etiqueta del impuesto",
+      "taxLabelPlaceholder": "VAT",
+      "taxLabelHint": "Nombre corto visible en presupuestos y facturas (VAT, IVA, Tax).",
+      "timezoneLabel": "Zona horaria de la clínica",
+      "timezonePlaceholder": "Asia/Dubai",
+      "timezoneHint": "Zona horaria IANA utilizada para la agenda de citas.",
+      "defaultLocaleLabel": "Idioma predeterminado de la clínica",
+      "defaultLocaleHint": "Idioma inicial para documentos y nuevos perfiles del equipo.",
+      "saveButton": "Guardar cambios",
+      "savingButton": "Guardando…",
+      "resetButton": "Descartar cambios"
+    },
+    "feedback": {
+      "savedTitle": "Ajustes de la clínica guardados",
+      "savedDescription": "La configuración de tu clínica está activa y se ha registrado en la auditoría.",
+      "saveErrorTitle": "No se pudieron guardar los ajustes",
+      "saveErrorDescription": "No pudimos guardar los cambios en este momento. Tus datos siguen en pantalla para que puedas revisarlos y volver a intentarlo."
+    },
+    "validation": {
+      "nameRequired": "Introduce el nombre de la clínica.",
+      "nameTooLong": "El nombre de la clínica no puede superar 120 caracteres.",
+      "currencyCodeRequired": "Introduce un código de moneda de 3 letras.",
+      "currencyCodeInvalid": "Introduce un código ISO válido de 3 letras como AED, EUR o USD.",
+      "currencySymbolRequired": "Introduce el símbolo de moneda.",
+      "currencySymbolTooLong": "El símbolo de moneda no puede superar 10 caracteres.",
+      "taxRateInvalid": "Introduce un porcentaje de impuesto válido entre 0 y 100 (máximo 2 decimales).",
+      "taxLabelRequired": "Introduce una etiqueta de impuesto como VAT, IVA o Tax.",
+      "taxLabelTooLong": "La etiqueta de impuesto no puede superar 20 caracteres.",
+      "timezoneRequired": "Introduce la zona horaria de la clínica.",
+      "timezoneTooLong": "La zona horaria no puede superar 64 caracteres.",
+      "defaultLocaleInvalid": "Selecciona un idioma predeterminado admitido."
+    },
+    "preview": {
+      "badge": "Vista previa de cálculo",
+      "title": "Vista previa en vivo de formato e impuesto",
+      "description": "Ejemplo de cálculo sobre un tratamiento de 100,00 usando los valores en pantalla.",
+      "subtotalLabel": "Subtotal de ejemplo",
+      "totalLabel": "Total con impuesto",
+      "activeCurrencyLabel": "Moneda ISO",
+      "activeTimezoneLabel": "Zona horaria",
+      "activeDefaultLocaleLabel": "Idioma predeterminado"
+    }
   }
 }

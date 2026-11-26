@@ -24,15 +24,16 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
    pnpm verify
    ```
 
-## Estructura principal (actualizada en `T-03`)
-- `supabase/migrations/` — Migraciones SQL idempotentes (`202611250001_base_schema_rls.sql`) y guía de rollback en [supabase/README.md](supabase/README.md)
-- `tests/db/` — Harness PostgreSQL 17 (`pg` en CI / `@electric-sql/pglite` en local) y tests de integración multi-clínica RLS (`pnpm db:verify`)
-- `src/domain/` — Lógica pura sin dependencias de React ni Supabase (`locale.ts`, `auth.ts`: sanitización anti-open-redirect, validación de credenciales, mapeo de errores y navegación)
+## Estructura principal (actualizada en `T-04`)
+- `supabase/migrations/` — Migraciones SQL idempotentes (`202611250001_base_schema_rls.sql`, `202611260001_clinic_settings_audit_trigger.sql`) y guía de rollback en [supabase/README.md](supabase/README.md)
+- `tests/db/` — Harness PostgreSQL 17 (`pg` en CI / `@electric-sql/pglite` en local) y tests de integración multi-clínica RLS y auditoría atómica (`pnpm db:verify`)
+- `src/domain/` — Lógica pura sin dependencias de React ni Supabase (`locale.ts`, `auth.ts`, `money.ts`: formateo de moneda en céntimos enteros, cálculo de impuestos en puntos básicos `_bps` con `BigInt` y validación multi-país)
 - `src/services/` — Wrappers/adaptadores intercambiables (`auth/authService.ts` con `IAuthService`, `repositories/clinicAccessRepository.ts` con `IClinicAccessRepository`, `storage/storageAdapter.ts` y `supabase/`)
 - `src/features/auth/` — `AuthContext`, `LoginPage`, `ProtectedRoute`, manejo de sesión expirada, perfil ausente y modo sin configurar
+- `src/features/settings/` — `ClinicSettingsPage` en `/settings` (edición multi-país solo para `admin`, modo de solo lectura para `dentist`/`receptionist`, plantillas rápidas EAU/España/EE. UU./Venezuela `USD` y `VES` y vista previa de cálculo en vivo)
 - `src/features/shell/` — `ClinicShell` responsive móvil-primero (barra lateral en escritorio + drawer accesible en móvil) con las 6 secciones de la clínica (`/schedule`, `/patients`, `/treatments`, `/quotes`, `/billing`, `/settings`)
 - `src/i18n/` — Traducciones 100% paritarias `locales/en.json` y `locales/es.json` + sincronización local y en `profiles.preferred_locale`
-- `src/ui/` — Tokens semánticos (`src/index.css`), utilidades (`cn`), primitivos `shadcn/ui` y estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`)
+- `src/ui/` — Tokens semánticos (`src/index.css`), utilidades (`cn`), primitivos `shadcn/ui` (`Button`, `Card`, `Badge`, `Input`, `Label`, `Select`) y estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`)
 - `vercel.json` y `public/manifest.webmanifest` — Rewrite SPA para previews/producción en Vercel y configuración PWA base
 
 ## Documentación del proyecto
