@@ -134,7 +134,9 @@
       "description": "Pre-fill standard currency, tax, timezone, and default language values. Changes are only saved when you press Save changes.",
       "uae": "UAE · AED · 5% VAT",
       "spain": "Spain · EUR · 21% IVA",
-      "usa": "USA · USD · 0% Tax"
+      "usa": "USA · USD · 0% Tax",
+      "venezuelaUsd": "Venezuela · USD · 0% IVA",
+      "venezuelaVes": "Venezuela · VES (Bs.) · 16% IVA"
     },
     "form": {
       "cardTitle": "Identity, currency & tax",

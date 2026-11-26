@@ -35,13 +35,16 @@ const INITIAL_CLINIC: ClinicSummary = Object.freeze({
   defaultLocale: 'en',
 });
 
-function createProfile(role: ClinicRole): UserProfile {
+function createProfile(
+  role: ClinicRole,
+  preferredLocale: SupportedLocale = 'en',
+): UserProfile {
   return Object.freeze({
     id: SYNTHETIC_USER.id,
     clinicId: INITIAL_CLINIC.id,
     fullName: 'Alex Synthetic Staff',
     role,
-    preferredLocale: 'en',
+    preferredLocale,
     isActive: true,
   });
 }
@@ -63,9 +66,11 @@ function createAuthService(
 
 function createSettingsRepository(options?: {
   role?: ClinicRole;
+  preferredLocale?: SupportedLocale;
   clinic?: ClinicSummary | null;
 }) {
   const role = options?.role ?? 'admin';
+  const preferredLocale = options?.preferredLocale ?? 'en';
   const initialClinic =
     options && 'clinic' in options ? options.clinic : INITIAL_CLINIC;
 
@@ -82,7 +87,9 @@ function createSettingsRepository(options?: {
 
   const repository: IClinicAccessRepository = {
     getActiveClinic: vi.fn().mockResolvedValue(initialClinic),
-    getCurrentProfile: vi.fn().mockResolvedValue(createProfile(role)),
+    getCurrentProfile: vi
+      .fn()
+      .mockResolvedValue(createProfile(role, preferredLocale)),
     updatePreferredLocale: vi.fn().mockResolvedValue(undefined),
     updateClinicSettings: updateClinicSettingsMock,
     appendAuditLog: appendAuditLogMock,
@@ -101,7 +108,10 @@ function renderSettingsApp(options?: {
   repository?: IClinicAccessRepository;
   authService?: IAuthService;
 }) {
-  const rig = createSettingsRepository({ role: options?.role ?? 'admin' });
+  const rig = createSettingsRepository({
+    role: options?.role ?? 'admin',
+    preferredLocale: options?.initialLocale ?? 'en',
+  });
   const repository = options?.repository ?? rig.repository;
   const authService = options?.authService ?? createAuthService();
   const storage = new InMemoryStorageAdapter();
@@ -390,5 +400,70 @@ describe('T-04 ClinicSettingsPage — roles, presets, live preview, validation, 
     expect(
       await standalone.findByText(es.settings.emptyTitle),
     ).toBeInTheDocument();
+  });
+
+  it('6. Fills Venezuela Bolívares (VES / Bs. / 16% IVA / America/Caracas / es) preset and updates live preview without saving until Save is clicked', async () => {
+    const user = userEvent.setup();
+    const { updateClinicSettingsMock } = renderSettingsApp({
+      role: 'admin',
+      initialLocale: 'es',
+    });
+
+    expect(
+      await screen.findByRole('heading', { name: es.settings.title }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', { name: es.settings.presets.venezuelaUsd }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: es.settings.presets.venezuelaVes }),
+    );
+
+    // Preset only fills draft fields; it must NOT auto-save
+    expect(updateClinicSettingsMock).not.toHaveBeenCalled();
+
+    expect(screen.getByLabelText(es.settings.form.currencyCodeLabel)).toHaveValue(
+      'VES',
+    );
+    expect(
+      screen.getByLabelText(es.settings.form.currencySymbolLabel),
+    ).toHaveValue('Bs.');
+    expect(screen.getByLabelText(es.settings.form.taxRateLabel)).toHaveValue(
+      '16',
+    );
+    expect(screen.getByLabelText(es.settings.form.taxLabelLabel)).toHaveValue(
+      'IVA',
+    );
+    expect(screen.getByLabelText(es.settings.form.timezoneLabel)).toHaveValue(
+      'America/Caracas',
+    );
+    expect(
+      screen.getByLabelText(es.settings.form.defaultLocaleLabel),
+    ).toHaveValue('es');
+
+    // Live calculation preview updates immediately in Spanish formatting (100,00 + 16,00 = 116,00)
+    expect(screen.getByText('Bs. 100,00')).toBeInTheDocument();
+    expect(screen.getByText('IVA (16%)')).toBeInTheDocument();
+    expect(screen.getByText('Bs. 16,00')).toBeInTheDocument();
+    expect(screen.getByText('Bs. 116,00')).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: es.settings.form.saveButton }),
+    );
+
+    await waitFor(() => {
+      expect(updateClinicSettingsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(updateClinicSettingsMock).toHaveBeenCalledWith(INITIAL_CLINIC.id, {
+      name: INITIAL_CLINIC.name,
+      currencyCode: 'VES',
+      currencySymbol: 'Bs.',
+      taxRateBps: 1600,
+      taxLabel: 'IVA',
+      timezone: 'America/Caracas',
+      defaultLocale: 'es',
+    });
   });
 });

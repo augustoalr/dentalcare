@@ -30,7 +30,7 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
 - `src/domain/` — Lógica pura sin dependencias de React ni Supabase (`locale.ts`, `auth.ts`, `money.ts`: formateo de moneda en céntimos enteros, cálculo de impuestos en puntos básicos `_bps` con `BigInt` y validación multi-país)
 - `src/services/` — Wrappers/adaptadores intercambiables (`auth/authService.ts` con `IAuthService`, `repositories/clinicAccessRepository.ts` con `IClinicAccessRepository`, `storage/storageAdapter.ts` y `supabase/`)
 - `src/features/auth/` — `AuthContext`, `LoginPage`, `ProtectedRoute`, manejo de sesión expirada, perfil ausente y modo sin configurar
-- `src/features/settings/` — `ClinicSettingsPage` en `/settings` (edición multi-país solo para `admin`, modo de solo lectura para `dentist`/`receptionist`, plantillas rápidas EAU/España/EE. UU. y vista previa de cálculo en vivo)
+- `src/features/settings/` — `ClinicSettingsPage` en `/settings` (edición multi-país solo para `admin`, modo de solo lectura para `dentist`/`receptionist`, plantillas rápidas EAU/España/EE. UU./Venezuela `USD` y `VES` y vista previa de cálculo en vivo)
 - `src/features/shell/` — `ClinicShell` responsive móvil-primero (barra lateral en escritorio + drawer accesible en móvil) con las 6 secciones de la clínica (`/schedule`, `/patients`, `/treatments`, `/quotes`, `/billing`, `/settings`)
 - `src/i18n/` — Traducciones 100% paritarias `locales/en.json` y `locales/es.json` + sincronización local y en `profiles.preferred_locale`
 - `src/ui/` — Tokens semánticos (`src/index.css`), utilidades (`cn`), primitivos `shadcn/ui` (`Button`, `Card`, `Badge`, `Input`, `Label`, `Select`) y estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`)

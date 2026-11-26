@@ -5,6 +5,7 @@ import {
   calculateTaxCents,
   calculateTaxSummaryCents,
   CLINIC_SETTINGS_PRESETS,
+  COMMON_CLINIC_TIMEZONES,
   formatMoney,
   percentStringToBps,
   validateClinicSettings,
@@ -26,9 +27,14 @@ const USD_CONFIG: CurrencyDisplayConfig = Object.freeze({
   currencySymbol: '$',
 });
 
+const VES_CONFIG: CurrencyDisplayConfig = Object.freeze({
+  currencyCode: 'VES',
+  currencySymbol: 'Bs.',
+});
+
 describe('T-04 Pure money, tax (_bps) and multi-country clinic settings domain', () => {
   describe('formatMoney', () => {
-    it('formats AED, EUR, and USD amounts accurately in both en and es locales', () => {
+    it('formats AED, EUR, USD, and VES (Bs.) amounts accurately in both en and es locales', () => {
       expect(formatMoney(125_000, AED_CONFIG, 'en')).toBe('AED 1,250.00');
       expect(formatMoney(125_000, AED_CONFIG, 'es')).toBe('AED 1.250,00');
 
@@ -37,6 +43,10 @@ describe('T-04 Pure money, tax (_bps) and multi-country clinic settings domain',
 
       expect(formatMoney(125_000, USD_CONFIG, 'en')).toBe('$1,250.00');
       expect(formatMoney(125_000, USD_CONFIG, 'es')).toBe('$1.250,00');
+
+      expect(formatMoney(125_000, VES_CONFIG, 'en')).toBe('Bs. 1,250.00');
+      expect(formatMoney(125_000, VES_CONFIG, 'es')).toBe('Bs. 1.250,00');
+      expect(formatMoney(-125_050, VES_CONFIG, 'es')).toBe('-Bs. 1.250,50');
     });
 
     it('handles zero, -0, single-digit cents, negative amounts, and massive safe integers without float drift', () => {
@@ -122,6 +132,21 @@ describe('T-04 Pure money, tax (_bps) and multi-country clinic settings domain',
       expect(formatMoney(usdSummary.totalCents, USD_CONFIG, 'es')).toBe(
         '$1.250,00',
       );
+
+      // VES 16% IVA on 1,250.00 (125,000 cents) -> 200.00 (20,000 cents) -> 1,450.00 (145,000 cents)
+      const vesSummary = calculateTaxSummaryCents(125_000, 1600);
+      expect(Object.isFrozen(vesSummary)).toBe(true);
+      expect(vesSummary).toEqual({
+        subtotalCents: 125_000,
+        taxCents: 20_000,
+        totalCents: 145_000,
+      });
+      expect(formatMoney(vesSummary.totalCents, VES_CONFIG, 'en')).toBe(
+        'Bs. 1,450.00',
+      );
+      expect(formatMoney(vesSummary.totalCents, VES_CONFIG, 'es')).toBe(
+        'Bs. 1.450,00',
+      );
     });
 
     it('applies exact symmetric half-up rounding and handles 0 and negative subtotals', () => {
@@ -202,9 +227,40 @@ describe('T-04 Pure money, tax (_bps) and multi-country clinic settings domain',
   });
 
   describe('CLINIC_SETTINGS_PRESETS and validateClinicSettings', () => {
-    it('exposes immutable multi-country presets for UAE, Spain, and USA that pass validation', () => {
+    it('exposes immutable multi-country presets (UAE, Spain, USA, Venezuela USD, Venezuela VES) and Caracas timezone', () => {
       expect(Object.isFrozen(CLINIC_SETTINGS_PRESETS)).toBe(true);
-      expect(CLINIC_SETTINGS_PRESETS).toHaveLength(3);
+      expect(CLINIC_SETTINGS_PRESETS.map((preset) => preset.id)).toEqual([
+        'uae',
+        'spain',
+        'usa',
+        'venezuela_usd',
+        'venezuela_ves',
+      ]);
+      expect(COMMON_CLINIC_TIMEZONES).toContain('America/Caracas');
+
+      const venezuelaUsd = CLINIC_SETTINGS_PRESETS.find(
+        (preset) => preset.id === 'venezuela_usd',
+      );
+      expect(venezuelaUsd).toMatchObject({
+        currencyCode: 'USD',
+        currencySymbol: '$',
+        taxRateBps: 0,
+        taxLabel: 'IVA',
+        timezone: 'America/Caracas',
+        defaultLocale: 'es',
+      });
+
+      const venezuelaVes = CLINIC_SETTINGS_PRESETS.find(
+        (preset) => preset.id === 'venezuela_ves',
+      );
+      expect(venezuelaVes).toMatchObject({
+        currencyCode: 'VES',
+        currencySymbol: 'Bs.',
+        taxRateBps: 1600,
+        taxLabel: 'IVA',
+        timezone: 'America/Caracas',
+        defaultLocale: 'es',
+      });
 
       for (const preset of CLINIC_SETTINGS_PRESETS) {
         expect(Object.isFrozen(preset)).toBe(true);

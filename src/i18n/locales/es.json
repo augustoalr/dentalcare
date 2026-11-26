@@ -134,7 +134,9 @@
       "description": "Rellena moneda, impuesto, zona horaria e idioma estándar con un clic. Los cambios no se guardan hasta pulsar Guardar cambios.",
       "uae": "EAU · AED · 5% VAT",
       "spain": "España · EUR · 21% IVA",
-      "usa": "EE. UU. · USD · 0% Tax"
+      "usa": "EE. UU. · USD · 0% Tax",
+      "venezuelaUsd": "Venezuela · USD · 0% IVA",
+      "venezuelaVes": "Venezuela · VES (Bs.) · 16% IVA"
     },
     "form": {
       "cardTitle": "Identidad, moneda e impuestos",

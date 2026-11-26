@@ -26,12 +26,19 @@ export interface ClinicSettingsInput {
   readonly defaultLocale: SupportedLocale;
 }
 
-export type ClinicSettingsPresetId = 'uae' | 'spain' | 'usa';
+export type ClinicSettingsPresetId =
+  | 'uae'
+  | 'spain'
+  | 'usa'
+  | 'venezuela_usd'
+  | 'venezuela_ves';
 
 export type ClinicSettingsPresetLabelKey =
   | 'settings.presets.uae'
   | 'settings.presets.spain'
-  | 'settings.presets.usa';
+  | 'settings.presets.usa'
+  | 'settings.presets.venezuelaUsd'
+  | 'settings.presets.venezuelaVes';
 
 export interface ClinicSettingsPreset {
   readonly id: ClinicSettingsPresetId;
@@ -76,12 +83,33 @@ export const CLINIC_SETTINGS_PRESETS: readonly ClinicSettingsPreset[] =
       timezone: 'America/New_York',
       defaultLocale: 'en',
     }),
+    Object.freeze({
+      id: 'venezuela_usd',
+      labelKey: 'settings.presets.venezuelaUsd',
+      currencyCode: 'USD',
+      currencySymbol: '$',
+      taxRateBps: 0,
+      taxLabel: 'IVA',
+      timezone: 'America/Caracas',
+      defaultLocale: 'es',
+    }),
+    Object.freeze({
+      id: 'venezuela_ves',
+      labelKey: 'settings.presets.venezuelaVes',
+      currencyCode: 'VES',
+      currencySymbol: 'Bs.',
+      taxRateBps: 1600,
+      taxLabel: 'IVA',
+      timezone: 'America/Caracas',
+      defaultLocale: 'es',
+    }),
   ]);
 
 export const COMMON_CLINIC_TIMEZONES: readonly string[] = Object.freeze([
   'Asia/Dubai',
   'Europe/Madrid',
   'Europe/London',
+  'America/Caracas',
   'America/New_York',
   'America/Chicago',
   'America/Los_Angeles',
