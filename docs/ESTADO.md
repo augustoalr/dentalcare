@@ -1,12 +1,12 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-26 08:16 GST por Manager (Cierre T-03 + Prompt T-04 a Revisor)
+Última actualización: 2026-11-26 09:28 GST por Manager (Inicio Coder T-04 tras APTO del Revisor)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-04` — Configuración de la Clínica Multi-País (Moneda, Símbolo e Impuesto) (`[DELICADA]`, prompt en revisión por el Revisor antes del Coder, R-02)
-- Bloqueado por el humano: Ninguno para revisar el prompt de `T-04` (confirmar que la migración SQL de `supabase/migrations/` y un usuario sintético de prueba estén aplicados en el Supabase conectado a Vercel para probar pantallas autenticadas en preview)
-- Próxima tarea propuesta: `T-04` (tras `APTO` del Revisor en `docs/prompts/T-04.md`)
+- En curso: `T-04` — Configuración de la Clínica Multi-País (Moneda, Símbolo e Impuesto) (`[DELICADA]`, prompt `APTO` por el Revisor al 1.er intento en `4205fde`, entregado al Coder)
+- Bloqueado por el humano: Ninguno para que el Coder programe `T-04` (confirmar migraciones aplicadas y usuario sintético `admin` en el Supabase conectado a Vercel antes de la prueba en preview de `T-04`)
+- Próxima tarea propuesta: `T-05` — Esquema y Ficha de Pacientes + Alertas Médicas Críticas en Rojo (`[DELICADA]`, tras fusionar `T-04`)
 
 ## Tabla de tareas
 
@@ -15,7 +15,7 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-01 Esqueleto Frontend + i18n + CI | T-01 esqueleto | `t-01-esqueleto-frontend` | — (en serie) | #3 | ✅ Fusionada | 2026-11-25 | 2026-11-25 (`d3e9aaf`) | 2 | 1 (`vite` faltante en `devDependencies`) | Preview probado por Augusto: PASÓ |
 | T-02 Esquema BD base + Auth + RLS | T-02 esquema-rls | `t-02-esquema-base-rls` | — (en serie) | #7 | ✅ Fusionada | 2026-11-25 | 2026-11-25 (`5913905`) | 1 (PR) / 2 (prompt) | 3 (en prompt por Revisor; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `b1b97bd5`; CI `verify` verde al 1.er intento |
 | T-03 Login + Shell + Idioma | T-03 login-shell | `t-03-login-shell` | — (en serie) | #10 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`64004d3`) | 2 (PR) / 1 (prompt) | 2 (en PR por Revisor: `signOut` local fallback y refs síncronos) | `[DELICADA]` Revisor `APROBADO` en `5f2e4942`; preview probado por Augusto: PASÓ |
-| T-04 Config clínica multi-país | Revisor T-04 (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-26 | | 1 (prompt) | | `[DELICADA]` Prompt en `docs/prompts/T-04.md` pendiente de `APTO` del Revisor (R-02) |
+| T-04 Config clínica multi-país | T-04 config-clinica | `t-04-config-clinica` | — (en serie) | — | 🛠️ En curso | 2026-11-26 | | 1 (prompt) | 0 | `[DELICADA]` Prompt `APTO` por Revisor (`4205fde`), en manos del Coder |
 | T-05 Pacientes + Alertas rojas | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-03 |
 | T-06 Archivos clínicos privados | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
 | T-07 Catálogo de tratamientos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-04 |
