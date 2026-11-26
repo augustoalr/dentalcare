@@ -323,6 +323,52 @@ describe('T-03 Authentication, Route Protection, and Clinic Shell Flow', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('5c. does NOT misclassify manual sign-out as session_expired when SIGNED_OUT arrives asynchronously after signOut() resolves (B-02)', async () => {
+    const user = userEvent.setup();
+    const authRig = createMockAuthRig(SYNTHETIC_USER);
+    authRig.signOutMock.mockImplementation(async () => {
+      // Emit SIGNED_OUT both on a post-await microtask (before React re-renders, after
+      // manualSignOutRef resets to false) and on a macrotask timer.
+      queueMicrotask(() => {
+        queueMicrotask(() => {
+          authRig.emitAuthEvent('SIGNED_OUT', null);
+        });
+      });
+      setTimeout(() => {
+        authRig.emitAuthEvent('SIGNED_OUT', null);
+      }, 0);
+    });
+    const repoRig = createMockRepository();
+
+    renderAppFlow({
+      initialEntries: ['/schedule'],
+      authService: authRig.authService,
+      repository: repoRig.repository,
+    });
+
+    expect(
+      await screen.findByRole('heading', { name: en.sections.schedule.title }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: en.auth.signOutButton }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: en.auth.loginTitle }),
+    ).toBeInTheDocument();
+
+    // Flush the delayed timer to ensure the async SIGNED_OUT listener executes.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    expect(
+      screen.queryByText(en.auth.sessionExpiredTitle),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('6. renders ErrorState with Sign out option when authenticated account has no active profile (profile_missing)', async () => {
     const user = userEvent.setup();
     const authRig = createMockAuthRig(SYNTHETIC_USER);
@@ -439,7 +485,11 @@ describe('T-03 Authentication, Route Protection, and Clinic Shell Flow', () => {
 
     const openMenuBtn = screen.getByRole('button', { name: en.nav.openMenu });
     expect(openMenuBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(openMenuBtn).not.toHaveAttribute('aria-controls');
     await user.click(openMenuBtn);
+
+    expect(openMenuBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(openMenuBtn).toHaveAttribute('aria-controls', 'clinic-mobile-drawer');
 
     const drawer = screen.getByRole('dialog', {
       name: en.nav.mobileDrawerTitle,

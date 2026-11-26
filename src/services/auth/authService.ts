@@ -80,9 +80,29 @@ export class SupabaseAuthService implements IAuthService {
   }
 
   async signOut(): Promise<void> {
-    const { error } = await this.client.auth.signOut();
-    if (error) {
-      throw error;
+    let globalSignOutError: unknown = null;
+
+    try {
+      const { error } = await this.client.auth.signOut();
+      if (error) {
+        globalSignOutError = error;
+      }
+    } catch (err) {
+      globalSignOutError = err;
+    }
+
+    if (!globalSignOutError) {
+      return;
+    }
+
+    // Fallback: if global sign-out fails due to offline/5xx network errors,
+    // `@supabase/auth-js` returns early before clearing browser storage.
+    // Force `scope: 'local'` so local credentials/tokens are always wiped.
+    const { error: localError } = await this.client.auth.signOut({
+      scope: 'local',
+    });
+    if (localError) {
+      throw localError;
     }
   }
 

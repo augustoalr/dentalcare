@@ -245,6 +245,49 @@ describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
     consoleInfoSpy.mockRestore();
   });
 
+  it('falls back to signOut({ scope: "local" }) when global signOut returns an error or throws a network exception (B-01)', async () => {
+    const signOutErrorCase = vi
+      .fn()
+      .mockResolvedValueOnce({ error: { message: '503 Service Unavailable' } })
+      .mockResolvedValueOnce({ error: null });
+
+    const authServiceErrorCase = new SupabaseAuthService({
+      auth: { signOut: signOutErrorCase },
+    } as unknown as DentalCareSupabaseClient);
+
+    await expect(authServiceErrorCase.signOut()).resolves.toBeUndefined();
+    expect(signOutErrorCase).toHaveBeenCalledTimes(2);
+    expect(signOutErrorCase).toHaveBeenNthCalledWith(1);
+    expect(signOutErrorCase).toHaveBeenNthCalledWith(2, { scope: 'local' });
+
+    const signOutThrowCase = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({ error: null });
+
+    const authServiceThrowCase = new SupabaseAuthService({
+      auth: { signOut: signOutThrowCase },
+    } as unknown as DentalCareSupabaseClient);
+
+    await expect(authServiceThrowCase.signOut()).resolves.toBeUndefined();
+    expect(signOutThrowCase).toHaveBeenCalledTimes(2);
+    expect(signOutThrowCase).toHaveBeenNthCalledWith(1);
+    expect(signOutThrowCase).toHaveBeenNthCalledWith(2, { scope: 'local' });
+
+    const signOutDoubleFail = vi
+      .fn()
+      .mockResolvedValueOnce({ error: { message: 'Network down' } })
+      .mockResolvedValueOnce({ error: { message: 'Storage locked' } });
+
+    const authServiceDoubleFail = new SupabaseAuthService({
+      auth: { signOut: signOutDoubleFail },
+    } as unknown as DentalCareSupabaseClient);
+
+    await expect(authServiceDoubleFail.signOut()).rejects.toEqual({
+      message: 'Storage locked',
+    });
+  });
+
   it('never imports @supabase/supabase-js directly inside domain, features, or ui layers (SoC)', () => {
     const srcRoot = path.resolve(process.cwd(), 'src');
     const protectedDirs = ['domain', 'features', 'ui'].map((dir) =>

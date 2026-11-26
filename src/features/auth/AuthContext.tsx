@@ -95,9 +95,26 @@ export function AuthProvider({
   const userRef = useRef<AuthSessionUser | null>(user);
   const profileRef = useRef<UserProfile | null>(profile);
 
-  statusRef.current = status;
-  userRef.current = user;
-  profileRef.current = profile;
+  const commitIdentityState = useCallback(
+    (next: {
+      status: AuthStatus;
+      user: AuthSessionUser | null;
+      profile: UserProfile | null;
+      clinic: ClinicSummary | null;
+      errorCode: AuthErrorCode | null;
+    }) => {
+      statusRef.current = next.status;
+      userRef.current = next.user;
+      profileRef.current = next.profile;
+
+      setStatus(next.status);
+      setUser(next.user);
+      setProfile(next.profile);
+      setClinic(next.clinic);
+      setErrorCode(next.errorCode);
+    },
+    [],
+  );
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -107,7 +124,10 @@ export function AuthProvider({
   }, []);
 
   const hydrateWorkspaceForUser = useCallback(
-    async (sessionUser: AuthSessionUser, requestId: number): Promise<boolean> => {
+    async (
+      sessionUser: AuthSessionUser,
+      requestId: number,
+    ): Promise<boolean> => {
       if (!resolvedRepository) {
         return false;
       }
@@ -123,49 +143,58 @@ export function AuthProvider({
         }
 
         if (!loadedProfile || !loadedClinic) {
-          setUser(sessionUser);
-          setProfile(null);
-          setClinic(null);
-          setErrorCode('profile_missing');
-          setStatus('profile_missing');
+          commitIdentityState({
+            status: 'profile_missing',
+            user: sessionUser,
+            profile: null,
+            clinic: null,
+            errorCode: 'profile_missing',
+          });
           return false;
         }
 
         syncLocale(loadedProfile.preferredLocale);
-        setUser(sessionUser);
-        setProfile(loadedProfile);
-        setClinic(loadedClinic);
-        setErrorCode(null);
         setLocaleSyncWarning(false);
-        setStatus('authenticated');
+        commitIdentityState({
+          status: 'authenticated',
+          user: sessionUser,
+          profile: loadedProfile,
+          clinic: loadedClinic,
+          errorCode: null,
+        });
         return true;
       } catch (err) {
         if (!isMountedRef.current || requestId !== requestIdRef.current) {
           return false;
         }
 
-        setUser(sessionUser);
-        setProfile(null);
-        setClinic(null);
-        setErrorCode(mapAuthErrorToCode(err));
-        setStatus('error');
+        commitIdentityState({
+          status: 'error',
+          user: sessionUser,
+          profile: null,
+          clinic: null,
+          errorCode: mapAuthErrorToCode(err),
+        });
         return false;
       }
     },
-    [resolvedRepository, syncLocale],
+    [commitIdentityState, resolvedRepository, syncLocale],
   );
 
   useEffect(() => {
     if (!resolvedAuthService || !resolvedRepository) {
-      setUser(null);
-      setProfile(null);
-      setClinic(null);
-      setErrorCode('unconfigured');
-      setStatus('unconfigured');
+      commitIdentityState({
+        status: 'unconfigured',
+        user: null,
+        profile: null,
+        clinic: null,
+        errorCode: 'unconfigured',
+      });
       return;
     }
 
     const requestId = ++requestIdRef.current;
+    statusRef.current = 'loading';
     setStatus('loading');
     setErrorCode(null);
 
@@ -177,11 +206,13 @@ export function AuthProvider({
         }
 
         if (!currentUser) {
-          setUser(null);
-          setProfile(null);
-          setClinic(null);
-          setErrorCode(null);
-          setStatus('unauthenticated');
+          commitIdentityState({
+            status: 'unauthenticated',
+            user: null,
+            profile: null,
+            clinic: null,
+            errorCode: null,
+          });
           return;
         }
 
@@ -191,11 +222,13 @@ export function AuthProvider({
           return;
         }
 
-        setUser(null);
-        setProfile(null);
-        setClinic(null);
-        setErrorCode(mapAuthErrorToCode(err));
-        setStatus('error');
+        commitIdentityState({
+          status: 'error',
+          user: null,
+          profile: null,
+          clinic: null,
+          errorCode: mapAuthErrorToCode(err),
+        });
       }
     })();
 
@@ -212,19 +245,27 @@ export function AuthProvider({
         if (event === 'SIGNED_OUT') {
           requestIdRef.current += 1;
           const wasAuthenticated = statusRef.current === 'authenticated';
+          const wasAlreadyExpired = statusRef.current === 'session_expired';
           const wasManual = manualSignOutRef.current;
 
-          setUser(null);
-          setProfile(null);
-          setClinic(null);
           setLocaleSyncWarning(false);
 
-          if (!wasManual && wasAuthenticated) {
-            setErrorCode('session_expired');
-            setStatus('session_expired');
+          if (!wasManual && (wasAuthenticated || wasAlreadyExpired)) {
+            commitIdentityState({
+              status: 'session_expired',
+              user: null,
+              profile: null,
+              clinic: null,
+              errorCode: 'session_expired',
+            });
           } else {
-            setErrorCode(null);
-            setStatus('unauthenticated');
+            commitIdentityState({
+              status: 'unauthenticated',
+              user: null,
+              profile: null,
+              clinic: null,
+              errorCode: null,
+            });
           }
           return;
         }
@@ -238,6 +279,7 @@ export function AuthProvider({
             statusRef.current === 'authenticated' &&
             userRef.current?.id === nextUser.id
           ) {
+            userRef.current = nextUser;
             setUser(nextUser);
           }
           return;
@@ -252,6 +294,7 @@ export function AuthProvider({
             statusRef.current === 'authenticated' &&
             userRef.current?.id === nextUser.id
           ) {
+            userRef.current = nextUser;
             setUser(nextUser);
             return;
           }
@@ -265,7 +308,12 @@ export function AuthProvider({
     return () => {
       unsubscribe();
     };
-  }, [hydrateWorkspaceForUser, resolvedAuthService, resolvedRepository]);
+  }, [
+    commitIdentityState,
+    hydrateWorkspaceForUser,
+    resolvedAuthService,
+    resolvedRepository,
+  ]);
 
   useEffect(() => {
     if (!resolvedRepository) {
@@ -278,12 +326,13 @@ export function AuthProvider({
         return;
       }
 
+      const updatedProfile = Object.freeze({
+        ...activeProfile,
+        preferredLocale: nextLocale,
+      });
+      profileRef.current = updatedProfile;
       setLocaleSyncWarning(false);
-      setProfile((prev) =>
-        prev
-          ? Object.freeze({ ...prev, preferredLocale: nextLocale })
-          : null,
-      );
+      setProfile(updatedProfile);
 
       void resolvedRepository
         .updatePreferredLocale(activeProfile.id, nextLocale)
@@ -298,8 +347,13 @@ export function AuthProvider({
   const signIn = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       if (!resolvedAuthService || !resolvedRepository) {
-        setErrorCode('unconfigured');
-        setStatus('unconfigured');
+        commitIdentityState({
+          status: 'unconfigured',
+          user: null,
+          profile: null,
+          clinic: null,
+          errorCode: 'unconfigured',
+        });
         return false;
       }
 
@@ -321,11 +375,13 @@ export function AuthProvider({
         return await hydrateWorkspaceForUser(sessionUser, requestId);
       } catch (err) {
         if (isMountedRef.current && requestId === requestIdRef.current) {
-          setUser(null);
-          setProfile(null);
-          setClinic(null);
-          setErrorCode(mapAuthErrorToCode(err));
-          setStatus('unauthenticated');
+          commitIdentityState({
+            status: 'unauthenticated',
+            user: null,
+            profile: null,
+            clinic: null,
+            errorCode: mapAuthErrorToCode(err),
+          });
         }
         return false;
       } finally {
@@ -335,7 +391,12 @@ export function AuthProvider({
         }
       }
     },
-    [hydrateWorkspaceForUser, resolvedAuthService, resolvedRepository],
+    [
+      commitIdentityState,
+      hydrateWorkspaceForUser,
+      resolvedAuthService,
+      resolvedRepository,
+    ],
   );
 
   const signOut = useCallback(async (): Promise<void> => {
@@ -348,20 +409,28 @@ export function AuthProvider({
         await resolvedAuthService.signOut();
       }
     } catch {
-      // Even on transient network failure during sign-out, clear local session state
-      // so the user is never trapped in an authenticated or broken view.
+      // Even if local storage cleanup reports an error, clear in-memory session state
+      // so the user is never trapped inside an authenticated or broken view.
     } finally {
+      const nextStatus: AuthStatus =
+        resolvedAuthService && resolvedRepository
+          ? 'unauthenticated'
+          : 'unconfigured';
+
+      // Synchronously update refs BEFORE resetting `manualSignOutRef` so any
+      // delayed/asynchronous `SIGNED_OUT` event arriving before React re-renders
+      // cannot misclassify a manual sign-out as `'session_expired'`.
+      statusRef.current = nextStatus;
+      userRef.current = null;
+      profileRef.current = null;
+
       if (isMountedRef.current) {
         setUser(null);
         setProfile(null);
         setClinic(null);
-        setErrorCode(null);
+        setErrorCode(nextStatus === 'unconfigured' ? 'unconfigured' : null);
         setLocaleSyncWarning(false);
-        setStatus(
-          resolvedAuthService && resolvedRepository
-            ? 'unauthenticated'
-            : 'unconfigured',
-        );
+        setStatus(nextStatus);
         setIsSigningOut(false);
       }
       manualSignOutRef.current = false;
@@ -374,21 +443,25 @@ export function AuthProvider({
     }
 
     const requestId = ++requestIdRef.current;
+    statusRef.current = 'loading';
     setStatus('loading');
     setErrorCode(null);
 
     try {
       const currentUser =
-        userRef.current ?? (await resolvedAuthService.getCurrentSession());
+        (await resolvedAuthService.getCurrentSession()) ?? userRef.current;
       if (!isMountedRef.current || requestId !== requestIdRef.current) {
         return;
       }
 
       if (!currentUser) {
-        setUser(null);
-        setProfile(null);
-        setClinic(null);
-        setStatus('unauthenticated');
+        commitIdentityState({
+          status: 'unauthenticated',
+          user: null,
+          profile: null,
+          clinic: null,
+          errorCode: null,
+        });
         return;
       }
 
@@ -398,10 +471,16 @@ export function AuthProvider({
         return;
       }
 
+      statusRef.current = 'error';
       setErrorCode(mapAuthErrorToCode(err));
       setStatus('error');
     }
-  }, [hydrateWorkspaceForUser, resolvedAuthService, resolvedRepository]);
+  }, [
+    commitIdentityState,
+    hydrateWorkspaceForUser,
+    resolvedAuthService,
+    resolvedRepository,
+  ]);
 
   const clearError = useCallback(() => {
     setErrorCode(null);

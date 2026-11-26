@@ -40,7 +40,7 @@ export function ClinicHeader({
             className="shrink-0 lg:hidden"
             onClick={onToggleMobileMenu}
             aria-expanded={isMobileMenuOpen}
-            aria-controls={MOBILE_DRAWER_ID}
+            aria-controls={isMobileMenuOpen ? MOBILE_DRAWER_ID : undefined}
             aria-label={
               isMobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')
             }
