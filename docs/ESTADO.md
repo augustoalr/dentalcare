@@ -1,10 +1,10 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-26 15:10 GST por Manager (Corrección de prompt T-06 tras revisión R-02)
+Última actualización: 2026-11-26 15:28 GST por Manager (Inicio Coder T-06 tras APTO del Revisor en `4a7a97f`)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-06` — Fotos Intraorales y Radiografías Sintéticas en Supabase Storage Privado (`[DELICADA]`, prompt `docs/prompts/T-06.md` corregido en ronda 2 tras hallazgo bloqueante de `Revisor T-06`, pendiente de `APTO`)
+- En curso: `T-06` — Fotos Intraorales y Radiografías Sintéticas en Supabase Storage Privado (`[DELICADA]`, prompt `APTO` por el Revisor en `4a7a97f`, entregado al Coder `T-06 archivos-privados`)
 - Bloqueado por el humano: Ninguno (`dentalcare-dev` tiene migraciones `T-02`, `T-04` y `T-05` aplicadas + cuentas sintéticas listas)
 - Próxima tarea propuesta: `T-07` — Catálogo de Tratamientos (Precios en Céntimos, EN/ES) (`[DELICADA]`, tras fusionar `T-06`)
 
@@ -17,7 +17,7 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-03 Login + Shell + Idioma | T-03 login-shell | `t-03-login-shell` | — (en serie) | #10 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`64004d3`) | 2 (PR) / 1 (prompt) | 2 (en PR por Revisor: `signOut` local fallback y refs síncronos) | `[DELICADA]` Revisor `APROBADO` en `5f2e4942`; preview probado por Augusto: PASÓ |
 | T-04 Config clínica multi-país | T-04 config-clinica | `t-04-config-clinica` | — (en serie) | #13 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`4f29b67`) | 2 (PR, ajuste VE) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `8351db87`; preview en vivo contra `dentalcare-dev` + `audit_log`: PASÓ |
 | T-05 Pacientes + Alertas rojas | T-05 pacientes-alertas | `t-05-pacientes-alertas` | — (en serie) | #16 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`ad91f23`) | 1 (PR) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `d1bc7778`; preview en vivo + `patient.archived` sin PII en `dentalcare-dev`: PASÓ |
-| T-06 Archivos clínicos privados | Revisor T-06 (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-26 | | 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`) | `[DELICADA]` Prompt `docs/prompts/T-06.md` corregido (1 bloqueante + 5 mejoras) para re-validación `APTO` |
+| T-06 Archivos clínicos privados | T-06 archivos-privados | `t-06-archivos-privados` | — (en serie) | — | 🛠️ En curso | 2026-11-26 | | 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`) | `[DELICADA]` Prompt `APTO` por Revisor (`4a7a97f`), en manos del Coder |
 | T-07 Catálogo de tratamientos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-04 |
 | T-08 Agenda + Notas + Panel del día | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
 | T-09 Recordatorios WhatsApp (`wa.me`) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | Depende de T-08 |
