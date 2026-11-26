@@ -1,12 +1,12 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-26 12:08 GST por Manager (Cierre T-04 + Backlog T-09b + Prompt T-05 a Revisor)
+Última actualización: 2026-11-26 12:40 GST por Manager (Inicio Coder T-05 tras APTO del Revisor)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-05` — Esquema y Ficha de Pacientes + Alertas Médicas Críticas en Rojo (`[DELICADA]`, prompt en revisión por el Revisor antes del Coder, R-02)
-- Bloqueado por el humano: Ninguno (`dentalcare-dev` ya tiene migraciones aplicadas y cuentas sintéticas `admin`/`dentist` listas)
-- Próxima tarea propuesta: `T-05` (tras `APTO` del Revisor en `docs/prompts/T-05.md`)
+- En curso: `T-05` — Esquema y Ficha de Pacientes + Alertas Médicas Críticas en Rojo (`[DELICADA]`, prompt `APTO` por el Revisor al 1.er intento en `2a60526`, entregado al Coder)
+- Bloqueado por el humano: Ninguno (`dentalcare-dev` ya tiene migraciones previas y cuentas sintéticas `admin`/`dentist` listas)
+- Próxima tarea propuesta: `T-06` — Fotos Intraorales y Radiografías Sintéticas en Supabase Storage Privado (`[DELICADA]`, tras fusionar `T-05`)
 
 ## Tabla de tareas
 
@@ -16,7 +16,7 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-02 Esquema BD base + Auth + RLS | T-02 esquema-rls | `t-02-esquema-base-rls` | — (en serie) | #7 | ✅ Fusionada | 2026-11-25 | 2026-11-25 (`5913905`) | 1 (PR) / 2 (prompt) | 3 (en prompt por Revisor; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `b1b97bd5`; CI `verify` verde al 1.er intento |
 | T-03 Login + Shell + Idioma | T-03 login-shell | `t-03-login-shell` | — (en serie) | #10 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`64004d3`) | 2 (PR) / 1 (prompt) | 2 (en PR por Revisor: `signOut` local fallback y refs síncronos) | `[DELICADA]` Revisor `APROBADO` en `5f2e4942`; preview probado por Augusto: PASÓ |
 | T-04 Config clínica multi-país | T-04 config-clinica | `t-04-config-clinica` | — (en serie) | #13 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`4f29b67`) | 2 (PR, ajuste VE) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `8351db87`; preview en vivo contra `dentalcare-dev` + `audit_log`: PASÓ |
-| T-05 Pacientes + Alertas rojas | Revisor T-05 (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-26 | | 1 (prompt) | | `[DELICADA]` Prompt en `docs/prompts/T-05.md` pendiente de `APTO` del Revisor (R-02) |
+| T-05 Pacientes + Alertas rojas | T-05 pacientes-alertas | `t-05-pacientes-alertas` | — (en serie) | — | 🛠️ En curso | 2026-11-26 | | 1 (prompt) | 0 | `[DELICADA]` Prompt `APTO` por Revisor (`2a60526`), en manos del Coder |
 | T-06 Archivos clínicos privados | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
 | T-07 Catálogo de tratamientos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-04 |
 | T-08 Agenda + Notas + Panel del día | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
