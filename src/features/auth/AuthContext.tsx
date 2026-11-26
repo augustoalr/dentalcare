@@ -15,6 +15,7 @@ import {
   type AuthStatus,
 } from '@/domain/auth';
 import type { SupportedLocale } from '@/domain/locale';
+import type { ClinicSettingsInput } from '@/domain/money';
 import { useI18n } from '@/i18n';
 import {
   createDefaultAuthService,
@@ -39,6 +40,7 @@ export interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   retrySessionLoad: () => Promise<void>;
+  updateClinicSettings: (input: ClinicSettingsInput) => Promise<ClinicSummary>;
   clearError: () => void;
   dismissLocaleSyncWarning: () => void;
 }
@@ -94,6 +96,7 @@ export function AuthProvider({
   const statusRef = useRef<AuthStatus>(status);
   const userRef = useRef<AuthSessionUser | null>(user);
   const profileRef = useRef<UserProfile | null>(profile);
+  const clinicRef = useRef<ClinicSummary | null>(clinic);
 
   const commitIdentityState = useCallback(
     (next: {
@@ -106,6 +109,7 @@ export function AuthProvider({
       statusRef.current = next.status;
       userRef.current = next.user;
       profileRef.current = next.profile;
+      clinicRef.current = next.clinic;
 
       setStatus(next.status);
       setUser(next.user);
@@ -423,6 +427,7 @@ export function AuthProvider({
       statusRef.current = nextStatus;
       userRef.current = null;
       profileRef.current = null;
+      clinicRef.current = null;
 
       if (isMountedRef.current) {
         setUser(null);
@@ -482,6 +487,50 @@ export function AuthProvider({
     resolvedRepository,
   ]);
 
+  const updateClinicSettings = useCallback(
+    async (input: ClinicSettingsInput): Promise<ClinicSummary> => {
+      const activeProfile = profileRef.current;
+      const activeClinic = clinicRef.current;
+
+      if (
+        statusRef.current !== 'authenticated' ||
+        !activeProfile ||
+        !activeClinic ||
+        !resolvedRepository
+      ) {
+        throw Object.assign(
+          new Error('Clinic workspace is not authenticated'),
+          { code: 'unauthenticated' },
+        );
+      }
+
+      if (activeProfile.role !== 'admin') {
+        throw Object.assign(
+          new Error('Only clinic administrators can update clinic settings'),
+          { code: 'forbidden' },
+        );
+      }
+
+      const capturedRequestId = requestIdRef.current;
+      const updatedClinic = await resolvedRepository.updateClinicSettings(
+        activeClinic.id,
+        input,
+      );
+
+      if (
+        isMountedRef.current &&
+        capturedRequestId === requestIdRef.current &&
+        statusRef.current === 'authenticated'
+      ) {
+        clinicRef.current = updatedClinic;
+        setClinic(updatedClinic);
+      }
+
+      return updatedClinic;
+    },
+    [resolvedRepository],
+  );
+
   const clearError = useCallback(() => {
     setErrorCode(null);
   }, []);
@@ -503,6 +552,7 @@ export function AuthProvider({
       signIn,
       signOut,
       retrySessionLoad,
+      updateClinicSettings,
       clearError,
       dismissLocaleSyncWarning,
     }),
@@ -518,6 +568,7 @@ export function AuthProvider({
       signIn,
       signOut,
       retrySessionLoad,
+      updateClinicSettings,
       clearError,
       dismissLocaleSyncWarning,
     ],

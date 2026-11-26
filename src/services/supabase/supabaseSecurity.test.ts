@@ -178,6 +178,108 @@ describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
     );
   });
 
+  it('sends ONLY the 7 editable clinic columns in updateClinicSettings, does not call audit_log manually, and propagates DB errors', async () => {
+    const singleSpy = vi.fn().mockResolvedValue({
+      data: {
+        id: 'clinic-1',
+        name: 'Clínica Sintética Madrid',
+        currency_code: 'EUR',
+        currency_symbol: '€',
+        tax_rate_bps: 2100,
+        tax_label: 'IVA',
+        timezone: 'Europe/Madrid',
+        default_locale: 'es',
+        created_at: '2026-11-25T00:00:00Z',
+        updated_at: '2026-11-26T00:00:00Z',
+        deleted_at: null,
+      },
+      error: null,
+    });
+    const selectSpy = vi.fn().mockReturnValue({ single: singleSpy });
+    const isSpy = vi.fn().mockReturnValue({ select: selectSpy });
+    const eqSpy = vi.fn().mockReturnValue({ is: isSpy });
+    const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy });
+    const fromSpy = vi.fn().mockReturnValue({ update: updateSpy });
+
+    const mockClient = {
+      from: fromSpy,
+    } as unknown as DentalCareSupabaseClient;
+
+    const repo = new SupabaseClinicAccessRepository(mockClient);
+    const updated = await repo.updateClinicSettings('clinic-1', {
+      name: 'Clínica Sintética Madrid',
+      currencyCode: 'EUR',
+      currencySymbol: '€',
+      taxRateBps: 2100,
+      taxLabel: 'IVA',
+      timezone: 'Europe/Madrid',
+      defaultLocale: 'es',
+    });
+
+    expect(fromSpy).toHaveBeenCalledTimes(1);
+    expect(fromSpy).toHaveBeenCalledWith('clinics');
+    expect(fromSpy).not.toHaveBeenCalledWith('audit_log');
+
+    const payload = updateSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(payload).sort()).toEqual([
+      'currency_code',
+      'currency_symbol',
+      'default_locale',
+      'name',
+      'tax_label',
+      'tax_rate_bps',
+      'timezone',
+    ]);
+    expect(payload).not.toHaveProperty('id');
+    expect(payload).not.toHaveProperty('created_at');
+    expect(payload).not.toHaveProperty('updated_at');
+    expect(payload).not.toHaveProperty('deleted_at');
+
+    expect(eqSpy).toHaveBeenCalledWith('id', 'clinic-1');
+    expect(isSpy).toHaveBeenCalledWith('deleted_at', null);
+    expect(selectSpy).toHaveBeenCalledWith('*');
+    expect(Object.isFrozen(updated)).toBe(true);
+    expect(updated).toEqual({
+      id: 'clinic-1',
+      name: 'Clínica Sintética Madrid',
+      currencyCode: 'EUR',
+      currencySymbol: '€',
+      taxRateBps: 2100,
+      taxLabel: 'IVA',
+      timezone: 'Europe/Madrid',
+      defaultLocale: 'es',
+    });
+
+    await expect(
+      repo.updateClinicSettings('   ', {
+        name: 'Clínica Sintética Madrid',
+        currencyCode: 'EUR',
+        currencySymbol: '€',
+        taxRateBps: 2100,
+        taxLabel: 'IVA',
+        timezone: 'Europe/Madrid',
+        defaultLocale: 'es',
+      }),
+    ).rejects.toThrow('Cannot update clinic settings without a valid clinicId');
+
+    singleSpy.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'permission denied for table clinics' },
+    });
+
+    await expect(
+      repo.updateClinicSettings('clinic-1', {
+        name: 'Clínica Sintética Madrid',
+        currencyCode: 'EUR',
+        currencySymbol: '€',
+        taxRateBps: 2100,
+        taxLabel: 'IVA',
+        timezone: 'Europe/Madrid',
+        defaultLocale: 'es',
+      }),
+    ).rejects.toThrow('Failed to update clinic settings');
+  });
+
   it('encapsulates Supabase Auth in SupabaseAuthService without logging credentials or tokens', async () => {
     const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const consoleInfoSpy = vi
