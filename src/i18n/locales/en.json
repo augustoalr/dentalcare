@@ -2,7 +2,9 @@
   "app": {
     "name": "DentalCare",
     "tagline": "Unified dental clinic management",
-    "demoBadge": "Test environment · Synthetic data only"
+    "demoBadge": "Test environment · Synthetic data only",
+    "sandboxNoticeTitle": "Synthetic validation environment",
+    "sandboxNoticeBody": "Use fictional test accounts and synthetic patient data only. Never enter real patient information."
   },
   "language": {
     "label": "Language",
@@ -25,21 +27,96 @@
     "sampleTitle": "Penicillin allergy — Latex sensitivity",
     "sampleDescription": "Verify alternative anesthesia and latex-free gloves before starting any clinical procedure."
   },
-  "welcome": {
-    "heroTitle": "Your dental clinic, organized in one place",
-    "heroDescription": "Manage appointments, clinical notes, treatment quotes, and billing from any desktop or mobile device.",
-    "sandboxNoticeTitle": "Synthetic validation environment",
-    "sandboxNoticeBody": "This preview uses fictional test data only. Do not enter real patient information.",
-    "pillarsTitle": "Core clinic workflow",
-    "pillars": {
-      "scheduleTitle": "Daily schedule",
-      "scheduleDescription": "Clear appointment status, visit notes, and private reminders without clinical details.",
-      "patientsTitle": "Patient records",
-      "patientsDescription": "Demographics, critical medical alerts highlighted in red, and private clinical files.",
-      "billingTitle": "Quotes & billing",
-      "billingDescription": "Configurable currency and tax rates with exact calculations and payment tracking."
+  "roles": {
+    "admin": "Administrator",
+    "dentist": "Dentist",
+    "receptionist": "Receptionist"
+  },
+  "auth": {
+    "loginTitle": "Sign in to your clinic",
+    "loginSubtitle": "Access your schedule, patient records, quotes, and billing securely.",
+    "emailLabel": "Work email",
+    "emailPlaceholder": "doctor@clinic.example",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "submitButton": "Sign in",
+    "submittingButton": "Signing in…",
+    "signOutButton": "Sign out",
+    "signingOutButton": "Signing out…",
+    "checkingSessionTitle": "Verifying your session",
+    "checkingSessionDescription": "Loading your clinic workspace and role permissions.",
+    "sessionExpiredTitle": "Your session has expired",
+    "sessionExpiredBody": "For your clinic's security, please sign in again to continue.",
+    "unconfiguredTitle": "Backend connection not configured",
+    "unconfiguredBody": "Sign-in is unavailable until the public Supabase environment variables are configured in this environment.",
+    "profileMissingTitle": "No active clinic profile found",
+    "profileMissingDescription": "Your account is signed in, but it does not have an active profile assigned to a clinic. Contact your clinic administrator or sign out to try another account.",
+    "sessionLoadErrorTitle": "Could not load your clinic workspace",
+    "sessionLoadErrorDescription": "We could not verify your clinic profile due to a connection problem. Please try again or sign out.",
+    "validation": {
+      "emailRequired": "Enter your email address.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Enter your password."
     },
-    "statesPreviewTitle": "Interface resilience states",
-    "statesPreviewDescription": "Standardized visual states and high-contrast medical alerts ready for every screen."
+    "errors": {
+      "invalidCredentialsTitle": "Incorrect email or password",
+      "invalidCredentialsBody": "Check your credentials and try again.",
+      "emailNotConfirmedTitle": "Email confirmation pending",
+      "emailNotConfirmedBody": "Confirm your email address before signing in.",
+      "rateLimitedTitle": "Too many sign-in attempts",
+      "rateLimitedBody": "Please wait a moment before trying again.",
+      "networkErrorTitle": "Connection problem",
+      "networkErrorBody": "Could not reach the authentication service. Check your internet connection and try again.",
+      "unknownErrorTitle": "Unable to sign in",
+      "unknownErrorBody": "An unexpected problem occurred while signing in. Please try again."
+    }
+  },
+  "nav": {
+    "ariaLabel": "Clinic navigation",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
+    "mobileDrawerTitle": "Navigation",
+    "schedule": "Schedule",
+    "patients": "Patients",
+    "treatments": "Treatments",
+    "quotes": "Quotes",
+    "billing": "Billing",
+    "settings": "Settings"
+  },
+  "shell": {
+    "skipToContent": "Skip to main content",
+    "activeClinicLabel": "Active clinic",
+    "signedInAsLabel": "Signed in as",
+    "localeSyncWarning": "Language updated on this device, but could not be saved to your profile right now.",
+    "dismissNotice": "Dismiss notice"
+  },
+  "sections": {
+    "emptyBadge": "Module ready for upcoming activation",
+    "emptyTitle": "This workspace section has no records yet",
+    "emptyDescription": "No fictional sample patients or appointments are preloaded here. Real clinic workflows for this module will be enabled in its dedicated milestone.",
+    "schedule": {
+      "title": "Daily schedule",
+      "description": "Manage daily appointments, status updates, clinical visit notes, and private WhatsApp reminders."
+    },
+    "patients": {
+      "title": "Patients",
+      "description": "Review patient records, critical medical alerts highlighted in red, and private clinical attachments."
+    },
+    "treatments": {
+      "title": "Treatments catalog",
+      "description": "Maintain standard dental procedures, durations, and exact prices in your clinic's currency."
+    },
+    "quotes": {
+      "title": "Treatment quotes",
+      "description": "Prepare clear treatment plans with exact tax calculations ready to review with patients."
+    },
+    "billing": {
+      "title": "Billing & payments",
+      "description": "Issue invoices, record partial or full payments, and keep a traceable accounting history."
+    },
+    "settings": {
+      "title": "Clinic settings",
+      "description": "Configure clinic identity, currency symbol, tax rate, and team preferences."
+    }
   }
 }

@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -35,17 +36,26 @@ type NestedKeyOf<ObjectType extends object> = {
 
 export type TranslationKey = NestedKeyOf<TranslationDictionary>;
 
+export type LocaleChangeListener = (nextLocale: SupportedLocale) => void;
+
 const DICTIONARIES: Record<SupportedLocale, TranslationDictionary> = {
   en,
   es,
 };
 
-function lookupTranslation(dictionary: TranslationDictionary, key: TranslationKey): string {
+function lookupTranslation(
+  dictionary: TranslationDictionary,
+  key: TranslationKey,
+): string {
   const segments = key.split('.');
   let current: unknown = dictionary;
 
   for (const segment of segments) {
-    if (typeof current !== 'object' || current === null || !(segment in current)) {
+    if (
+      typeof current !== 'object' ||
+      current === null ||
+      !(segment in current)
+    ) {
       return key;
     }
     current = (current as Record<string, unknown>)[segment];
@@ -57,6 +67,8 @@ function lookupTranslation(dictionary: TranslationDictionary, key: TranslationKe
 export interface I18nContextValue {
   locale: SupportedLocale;
   setLocale: (nextLocale: SupportedLocale) => void;
+  syncLocale: (nextLocale: SupportedLocale) => void;
+  subscribeLocaleChange: (listener: LocaleChangeListener) => () => void;
   t: (key: TranslationKey) => string;
 }
 
@@ -78,12 +90,15 @@ export function I18nProvider({
     [storage],
   );
 
+  const listenersRef = useRef(new Set<LocaleChangeListener>());
+
   const [locale, setLocaleState] = useState<SupportedLocale>(() => {
     if (initialLocale) {
       return initialLocale;
     }
     const persisted = storageAdapter.getItem(LOCALE_STORAGE_KEY);
-    const browserLang = typeof navigator !== 'undefined' ? navigator.language : undefined;
+    const browserLang =
+      typeof navigator !== 'undefined' ? navigator.language : undefined;
     return resolveInitialLocale(persisted, browserLang);
   });
 
@@ -93,13 +108,31 @@ export function I18nProvider({
     }
   }, [locale]);
 
-  const setLocale = useCallback(
+  const syncLocale = useCallback(
     (nextLocale: SupportedLocale) => {
       setLocaleState(nextLocale);
       storageAdapter.setItem(LOCALE_STORAGE_KEY, nextLocale);
     },
     [storageAdapter],
   );
+
+  const setLocale = useCallback(
+    (nextLocale: SupportedLocale) => {
+      setLocaleState(nextLocale);
+      storageAdapter.setItem(LOCALE_STORAGE_KEY, nextLocale);
+      for (const listener of listenersRef.current) {
+        listener(nextLocale);
+      }
+    },
+    [storageAdapter],
+  );
+
+  const subscribeLocaleChange = useCallback((listener: LocaleChangeListener) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
 
   const t = useCallback(
     (key: TranslationKey): string => lookupTranslation(DICTIONARIES[locale], key),
@@ -110,9 +143,11 @@ export function I18nProvider({
     () => ({
       locale,
       setLocale,
+      syncLocale,
+      subscribeLocaleChange,
       t,
     }),
-    [locale, setLocale, t],
+    [locale, setLocale, syncLocale, subscribeLocaleChange, t],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

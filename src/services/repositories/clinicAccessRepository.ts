@@ -5,7 +5,10 @@ import type {
   Json,
   ProfileRow,
 } from '@/services/supabase/database.types';
-import type { DentalCareSupabaseClient } from '@/services/supabase/supabaseClient';
+import {
+  getSupabaseClient,
+  type DentalCareSupabaseClient,
+} from '@/services/supabase/supabaseClient';
 
 export interface ClinicSummary {
   readonly id: string;
@@ -44,6 +47,7 @@ export interface CreateAuditLogInput {
 export interface IClinicAccessRepository {
   getActiveClinic(): Promise<ClinicSummary | null>;
   getCurrentProfile(userId: string): Promise<UserProfile | null>;
+  updatePreferredLocale(userId: string, locale: SupportedLocale): Promise<void>;
   appendAuditLog(input: CreateAuditLogInput): Promise<void>;
 }
 
@@ -112,6 +116,27 @@ export class SupabaseClinicAccessRepository implements IClinicAccessRepository {
     return data ? mapProfileRow(data) : null;
   }
 
+  async updatePreferredLocale(
+    userId: string,
+    locale: SupportedLocale,
+  ): Promise<void> {
+    if (userId.trim().length === 0) {
+      throw new Error('Cannot update preferred locale without a valid userId');
+    }
+
+    // IMPORTANT: Send ONLY `{ preferred_locale: locale }` so `private.guard_profile_update()`
+    // permits non-admin roles (`dentist`, `receptionist`) to update their own language
+    // without triggering PostgreSQL 42501.
+    const { error } = await this.client
+      .from('profiles')
+      .update({ preferred_locale: locale })
+      .eq('id', userId);
+
+    if (error) {
+      throw new Error(`Failed to update preferred locale: ${error.message}`);
+    }
+  }
+
   async appendAuditLog(input: CreateAuditLogInput): Promise<void> {
     // IMPORTANT: Never chain `.select()` after `.insert()` on `audit_log`.
     // `dentist` and `receptionist` roles are intentionally denied SELECT on `audit_log` by RLS,
@@ -129,4 +154,13 @@ export class SupabaseClinicAccessRepository implements IClinicAccessRepository {
       throw new Error(`Failed to append audit log entry: ${error.message}`);
     }
   }
+}
+
+/**
+ * Returns the default browser clinic repository when Supabase public env vars are configured,
+ * or `null` in safe degraded mode.
+ */
+export function createDefaultClinicAccessRepository(): IClinicAccessRepository | null {
+  const client = getSupabaseClient();
+  return client ? new SupabaseClinicAccessRepository(client) : null;
 }
