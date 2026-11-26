@@ -194,5 +194,108 @@
       "activeTimezoneLabel": "Timezone",
       "activeDefaultLocaleLabel": "Default language"
     }
+  },
+  "patients": {
+    "title": "Patients",
+    "description": "Manage synthetic patient profiles, search contact details instantly, and review critical medical alerts highlighted in red.",
+    "countSingle": "1 active patient",
+    "countPlural": "{count} active patients",
+    "newPatientButton": "New patient",
+    "closeFormButton": "Close form",
+    "unconfiguredTitle": "Patient directory unavailable",
+    "unconfiguredDescription": "Connect the public Supabase environment variables to load and manage clinic patients.",
+    "search": {
+      "label": "Search patients",
+      "placeholder": "Search by name, phone, or email…",
+      "clearButton": "Clear search",
+      "resultsCount": "Showing {shown} of {total}"
+    },
+    "list": {
+      "medicalAlertBadge": "Medical alert",
+      "noContactInfo": "No phone or email recorded",
+      "openRecordAria": "Open patient chart for {name}"
+    },
+    "empty": {
+      "noPatientsTitle": "No patients registered yet",
+      "noPatientsDescription": "Create your first synthetic patient record to test clinical alerts, appointments, and quotes.",
+      "noSearchResultsTitle": "No matching patients found",
+      "noSearchResultsDescription": "No active patient matches your current search by name, phone, or email."
+    },
+    "errors": {
+      "listLoadTitle": "Could not load patient directory",
+      "listLoadDescription": "We could not load your clinic's patient records right now. Please try again.",
+      "detailLoadTitle": "Could not load patient chart",
+      "detailLoadDescription": "We could not retrieve this patient's record due to a connection problem. Please try again."
+    },
+    "form": {
+      "createCardTitle": "New synthetic patient",
+      "createCardDescription": "Register demographic details and highlight any critical allergies before clinical care.",
+      "editCardTitle": "Edit patient chart",
+      "editCardDescription": "Update contact details, critical medical alerts, or general notes for this patient.",
+      "syntheticNoticeTitle": "100% synthetic patient data only",
+      "syntheticNoticeBody": "Never enter real patient names, phone numbers, email addresses, or real medical histories in this validation environment.",
+      "fullNameLabel": "Full name",
+      "fullNamePlaceholder": "Layla Synthetic Al Mansoor",
+      "phoneLabel": "Phone number (optional)",
+      "phonePlaceholder": "+971 50 123 4567",
+      "emailLabel": "Email address (optional)",
+      "emailPlaceholder": "layla.synthetic@example.test",
+      "dateOfBirthLabel": "Date of birth (optional)",
+      "dateOfBirthHint": "Format YYYY-MM-DD (used to calculate age on the chart).",
+      "medicalAlertsLabel": "Critical medical alerts & allergies (optional)",
+      "medicalAlertsPlaceholder": "Penicillin allergy, latex sensitivity, anticoagulant therapy…",
+      "medicalAlertsHint": "Displayed in a high-contrast red alert banner at the very top of the patient's chart.",
+      "generalNotesLabel": "General notes (optional)",
+      "generalNotesPlaceholder": "Communication preferences, scheduling notes, or synthetic background…",
+      "generalNotesHint": "General reception and clinical context (up to 2,000 characters).",
+      "createSubmitButton": "Create patient",
+      "editSubmitButton": "Save patient changes",
+      "savingButton": "Saving…",
+      "cancelButton": "Cancel",
+      "saveErrorTitle": "Could not save patient record",
+      "saveErrorDescription": "We could not save this patient right now. Your entered information is still on screen so you can try again."
+    },
+    "validation": {
+      "fullNameRequired": "Enter the patient's full name.",
+      "fullNameTooLong": "Full name must be 120 characters or fewer.",
+      "phoneTooLong": "Phone number must be 32 characters or fewer.",
+      "emailInvalid": "Enter a valid email address.",
+      "emailTooLong": "Email address must be 254 characters or fewer.",
+      "dateOfBirthInvalid": "Enter a valid calendar date (YYYY-MM-DD).",
+      "dateOfBirthTooEarly": "Date of birth must be 1900-01-01 or later.",
+      "dateOfBirthInFuture": "Date of birth cannot be in the future.",
+      "medicalAlertsTooLong": "Medical alerts must be 1,000 characters or fewer.",
+      "generalNotesTooLong": "General notes must be 2,000 characters or fewer."
+    },
+    "detail": {
+      "backToList": "Back to patients",
+      "loadingTitle": "Loading patient chart",
+      "loadingDescription": "Retrieving demographic information and medical alerts.",
+      "notFoundTitle": "Patient record not found",
+      "notFoundDescription": "This patient chart does not exist, belongs to another clinic, or has been archived.",
+      "medicalAlertBannerLabel": "Critical medical alert",
+      "medicalAlertBannerHint": "Verify allergies and clinical precautions before starting any dental procedure.",
+      "noMedicalAlertsBadge": "No critical alerts",
+      "noMedicalAlertsDescription": "No critical allergies or medical alerts are registered for this patient.",
+      "ageYears": "{age} yrs",
+      "editButton": "Edit patient",
+      "archiveButton": "Archive patient",
+      "savedBannerTitle": "Patient chart updated",
+      "savedBannerDescription": "Your changes to this patient record have been saved.",
+      "contactCardTitle": "Contact & demographic details",
+      "phoneFieldLabel": "Phone",
+      "emailFieldLabel": "Email",
+      "dateOfBirthFieldLabel": "Date of birth",
+      "notProvided": "Not provided",
+      "notesCardTitle": "General notes",
+      "noGeneralNotes": "No general notes recorded for this patient.",
+      "archiveConfirmTitle": "Archive this patient record?",
+      "archiveConfirmDescription": "The patient will be hidden from active clinic lists without deleting historical records, and an anonymised archive event will be recorded in the audit log.",
+      "archiveConfirmButton": "Confirm archive",
+      "archivingButton": "Archiving…",
+      "archiveCancelButton": "Keep active",
+      "archiveErrorTitle": "Could not archive patient",
+      "archiveErrorDescription": "We could not archive this patient right now. Please try again."
+    }
   }
 }

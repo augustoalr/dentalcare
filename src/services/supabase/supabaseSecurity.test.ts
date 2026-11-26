@@ -4,6 +4,7 @@ import process from 'node:process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SupabaseAuthService } from '@/services/auth/authService';
 import { SupabaseClinicAccessRepository } from '@/services/repositories/clinicAccessRepository';
+import { SupabasePatientRepository } from '@/services/repositories/patientRepository';
 import {
   createSupabaseClient,
   getSupabaseClient,
@@ -385,9 +386,169 @@ describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
       auth: { signOut: signOutDoubleFail },
     } as unknown as DentalCareSupabaseClient);
 
-    await expect(authServiceDoubleFail.signOut()).rejects.toEqual({
+      await expect(authServiceDoubleFail.signOut()).rejects.toEqual({
       message: 'Storage locked',
     });
+  });
+
+  it('enforces least-privilege columns in SupabasePatientRepository (createPatient & updatePatient), archives via deleted_at WITHOUT .select() or .delete(), and strips PII from errors', async () => {
+    const samplePatientRow = {
+      id: 'patient-1',
+      clinic_id: 'clinic-1',
+      full_name: 'Nadia Synthetic Al Harbi',
+      phone: '+971 50 000 1111',
+      email: 'nadia.synthetic@dentalcare.test',
+      date_of_birth: '1992-08-19',
+      medical_alerts: 'Severe Penicillin and Latex allergy',
+      general_notes: 'Synthetic anxious patient note',
+      created_at: '2026-11-26T08:00:00Z',
+      updated_at: '2026-11-26T09:00:00Z',
+      deleted_at: null,
+    };
+
+    const insertSingleSpy = vi
+      .fn()
+      .mockResolvedValue({ data: samplePatientRow, error: null });
+    const insertSelectSpy = vi.fn().mockReturnValue({ single: insertSingleSpy });
+    const insertSpy = vi.fn().mockReturnValue({ select: insertSelectSpy });
+
+    const updateSingleSpy = vi
+      .fn()
+      .mockResolvedValue({ data: samplePatientRow, error: null });
+    const updateSelectSpy = vi.fn().mockReturnValue({ single: updateSingleSpy });
+
+    const archiveSelectSpy = vi.fn();
+    let mode: 'update' | 'archive' = 'update';
+
+    const isSpy = vi.fn().mockImplementation(() => {
+      if (mode === 'archive') {
+        const archivePromise = Promise.resolve({
+          data: null,
+          error: null,
+        }) as Promise<{ data: null; error: null }> & {
+          select: typeof archiveSelectSpy;
+        };
+        archivePromise.select = archiveSelectSpy;
+        return archivePromise;
+      }
+      return { select: updateSelectSpy };
+    });
+
+    const eqSpy = vi.fn().mockReturnValue({ is: isSpy });
+    const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy });
+    const deleteSpy = vi.fn();
+
+    const fromSpy = vi.fn().mockReturnValue({
+      insert: insertSpy,
+      update: updateSpy,
+      delete: deleteSpy,
+    });
+
+    const mockClient = {
+      from: fromSpy,
+    } as unknown as DentalCareSupabaseClient;
+
+    const repo = new SupabasePatientRepository(mockClient);
+
+    // 1. createPatient sends ONLY clinic_id + 6 business columns
+    const created = await repo.createPatient('clinic-1', {
+      fullName: samplePatientRow.full_name,
+      phone: samplePatientRow.phone,
+      email: samplePatientRow.email,
+      dateOfBirth: samplePatientRow.date_of_birth,
+      medicalAlerts: samplePatientRow.medical_alerts,
+      generalNotes: samplePatientRow.general_notes,
+    });
+
+    const insertPayload = insertSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(insertPayload).sort()).toEqual([
+      'clinic_id',
+      'date_of_birth',
+      'email',
+      'full_name',
+      'general_notes',
+      'medical_alerts',
+      'phone',
+    ]);
+    expect(insertPayload).not.toHaveProperty('id');
+    expect(insertPayload).not.toHaveProperty('deleted_at');
+    expect(Object.isFrozen(created)).toBe(true);
+
+    // 2. updatePatient sends ONLY the 6 editable columns (never id, clinic_id, created_at, updated_at, deleted_at)
+    mode = 'update';
+    await repo.updatePatient('patient-1', {
+      fullName: samplePatientRow.full_name,
+      phone: samplePatientRow.phone,
+      email: samplePatientRow.email,
+      dateOfBirth: samplePatientRow.date_of_birth,
+      medicalAlerts: samplePatientRow.medical_alerts,
+      generalNotes: samplePatientRow.general_notes,
+    });
+
+    const updatePayload = updateSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(updatePayload).sort()).toEqual([
+      'date_of_birth',
+      'email',
+      'full_name',
+      'general_notes',
+      'medical_alerts',
+      'phone',
+    ]);
+    expect(updatePayload).not.toHaveProperty('id');
+    expect(updatePayload).not.toHaveProperty('clinic_id');
+    expect(updatePayload).not.toHaveProperty('created_at');
+    expect(updatePayload).not.toHaveProperty('updated_at');
+    expect(updatePayload).not.toHaveProperty('deleted_at');
+
+    // 3. archivePatient sets deleted_at WITHOUT chaining .select() and NEVER calls .delete()
+    mode = 'archive';
+    await repo.archivePatient('patient-1');
+
+    const archivePayload = updateSpy.mock.calls[1]?.[0] as Record<string, unknown>;
+    expect(Object.keys(archivePayload)).toEqual(['deleted_at']);
+    expect(typeof archivePayload.deleted_at).toBe('string');
+    expect(archiveSelectSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
+
+    // 4. Error privacy: never echoes patient PII or clinical alerts even if PostgREST error contains them
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    updateSingleSpy.mockResolvedValueOnce({
+      data: null,
+      error: {
+        code: '23514',
+        message:
+          'Failing row contains (Nadia Synthetic Al Harbi, +971 50 000 1111, nadia.synthetic@dentalcare.test, Severe Penicillin and Latex allergy, Synthetic anxious patient note)',
+      },
+    });
+    mode = 'update';
+
+    let thrownError: Error | null = null;
+    try {
+      await repo.updatePatient('patient-1', {
+        fullName: samplePatientRow.full_name,
+        phone: samplePatientRow.phone,
+        email: samplePatientRow.email,
+        dateOfBirth: samplePatientRow.date_of_birth,
+        medicalAlerts: samplePatientRow.medical_alerts,
+        generalNotes: samplePatientRow.general_notes,
+      });
+    } catch (err) {
+      thrownError = err as Error;
+    }
+
+    expect(thrownError).not.toBeNull();
+    expect(thrownError?.message).toBe(
+      'Failed to update patient record (code: 23514)',
+    );
+    expect(thrownError?.message).not.toContain('Nadia');
+    expect(thrownError?.message).not.toContain('+971');
+    expect(thrownError?.message).not.toContain('nadia.synthetic');
+    expect(thrownError?.message).not.toContain('Penicillin');
+    expect(thrownError?.message).not.toContain('anxious');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it('never imports @supabase/supabase-js directly inside domain, features, or ui layers (SoC)', () => {

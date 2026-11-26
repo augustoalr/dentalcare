@@ -194,5 +194,108 @@
       "activeTimezoneLabel": "Zona horaria",
       "activeDefaultLocaleLabel": "Idioma predeterminado"
     }
+  },
+  "patients": {
+    "title": "Pacientes",
+    "description": "Gestiona fichas sintéticas de pacientes, busca datos de contacto al instante y revisa alertas médicas críticas destacadas en rojo.",
+    "countSingle": "1 paciente activo",
+    "countPlural": "{count} pacientes activos",
+    "newPatientButton": "Nuevo paciente",
+    "closeFormButton": "Cerrar formulario",
+    "unconfiguredTitle": "Directorio de pacientes no disponible",
+    "unconfiguredDescription": "Configura las variables públicas de entorno de Supabase para cargar y gestionar pacientes.",
+    "search": {
+      "label": "Buscar pacientes",
+      "placeholder": "Buscar por nombre, teléfono o correo…",
+      "clearButton": "Limpiar búsqueda",
+      "resultsCount": "Mostrando {shown} de {total}"
+    },
+    "list": {
+      "medicalAlertBadge": "Alerta médica",
+      "noContactInfo": "Sin teléfono ni correo registrados",
+      "openRecordAria": "Abrir ficha del paciente {name}"
+    },
+    "empty": {
+      "noPatientsTitle": "Aún no hay pacientes registrados",
+      "noPatientsDescription": "Crea tu primer paciente sintético para validar alertas clínicas en rojo, citas y presupuestos.",
+      "noSearchResultsTitle": "Sin coincidencias para tu búsqueda",
+      "noSearchResultsDescription": "Ningún paciente activo coincide con el nombre, teléfono o correo buscado."
+    },
+    "errors": {
+      "listLoadTitle": "No se pudo cargar el listado de pacientes",
+      "listLoadDescription": "No pudimos obtener las fichas de pacientes de tu clínica en este momento. Inténtalo de nuevo.",
+      "detailLoadTitle": "No se pudo cargar la ficha del paciente",
+      "detailLoadDescription": "No pudimos recuperar esta ficha por un problema de conexión. Inténtalo de nuevo."
+    },
+    "form": {
+      "createCardTitle": "Nuevo paciente sintético",
+      "createCardDescription": "Registra los datos básicos y destaca cualquier alergia o alerta crítica antes de la atención clínica.",
+      "editCardTitle": "Editar ficha del paciente",
+      "editCardDescription": "Actualiza los datos de contacto, alertas médicas críticas o notas generales del paciente.",
+      "syntheticNoticeTitle": "Usa exclusivamente datos 100% sintéticos",
+      "syntheticNoticeBody": "Nunca introduzcas nombres, teléfonos, correos ni historiales médicos reales de pacientes en este entorno de validación.",
+      "fullNameLabel": "Nombre completo",
+      "fullNamePlaceholder": "Layla Sintética Al Mansoor",
+      "phoneLabel": "Teléfono (opcional)",
+      "phonePlaceholder": "+971 50 123 4567",
+      "emailLabel": "Correo electrónico (opcional)",
+      "emailPlaceholder": "layla.sintetica@ejemplo.test",
+      "dateOfBirthLabel": "Fecha de nacimiento (opcional)",
+      "dateOfBirthHint": "Formato AAAA-MM-DD (se utiliza para calcular la edad en la ficha).",
+      "medicalAlertsLabel": "Alertas médicas críticas y alergias (opcional)",
+      "medicalAlertsPlaceholder": "Alergia a la penicilina, sensibilidad al látex, tratamiento anticoagulante…",
+      "medicalAlertsHint": "Se mostrará en un banner rojo de alto contraste en la parte superior de la ficha del paciente.",
+      "generalNotesLabel": "Notas generales (opcional)",
+      "generalNotesPlaceholder": "Preferencias de contacto, observaciones de agenda o contexto sintético…",
+      "generalNotesHint": "Notas generales de recepción y consulta (máximo 2.000 caracteres).",
+      "createSubmitButton": "Crear paciente",
+      "editSubmitButton": "Guardar cambios",
+      "savingButton": "Guardando…",
+      "cancelButton": "Cancelar",
+      "saveErrorTitle": "No se pudo guardar la ficha del paciente",
+      "saveErrorDescription": "No pudimos guardar los datos en este momento. Tu información sigue en pantalla para que puedas volver a intentarlo."
+    },
+    "validation": {
+      "fullNameRequired": "Introduce el nombre completo del paciente.",
+      "fullNameTooLong": "El nombre completo no puede superar 120 caracteres.",
+      "phoneTooLong": "El teléfono no puede superar 32 caracteres.",
+      "emailInvalid": "Introduce un correo electrónico válido.",
+      "emailTooLong": "El correo electrónico no puede superar 254 caracteres.",
+      "dateOfBirthInvalid": "Introduce una fecha real de calendario (AAAA-MM-DD).",
+      "dateOfBirthTooEarly": "La fecha de nacimiento debe ser igual o posterior a 1900-01-01.",
+      "dateOfBirthInFuture": "La fecha de nacimiento no puede estar en el futuro.",
+      "medicalAlertsTooLong": "Las alertas médicas no pueden superar 1.000 caracteres.",
+      "generalNotesTooLong": "Las notas generales no pueden superar 2.000 caracteres."
+    },
+    "detail": {
+      "backToList": "Volver a pacientes",
+      "loadingTitle": "Cargando ficha del paciente",
+      "loadingDescription": "Recuperando datos de contacto y alertas médicas críticas.",
+      "notFoundTitle": "Ficha de paciente no encontrada",
+      "notFoundDescription": "Esta ficha no existe, pertenece a otra clínica o ha sido archivada.",
+      "medicalAlertBannerLabel": "Alerta médica crítica",
+      "medicalAlertBannerHint": "Verifica alergias y precauciones clínicas antes de iniciar cualquier procedimiento dental.",
+      "noMedicalAlertsBadge": "Sin alertas críticas",
+      "noMedicalAlertsDescription": "No hay alergias ni alertas médicas críticas registradas para este paciente.",
+      "ageYears": "{age} años",
+      "editButton": "Editar paciente",
+      "archiveButton": "Archivar paciente",
+      "savedBannerTitle": "Ficha de paciente actualizada",
+      "savedBannerDescription": "Los cambios en la ficha del paciente se han guardado correctamente.",
+      "contactCardTitle": "Datos de contacto y filiación",
+      "phoneFieldLabel": "Teléfono",
+      "emailFieldLabel": "Correo electrónico",
+      "dateOfBirthFieldLabel": "Fecha de nacimiento",
+      "notProvided": "No registrado",
+      "notesCardTitle": "Notas generales",
+      "noGeneralNotes": "No hay notas generales registradas para este paciente.",
+      "archiveConfirmTitle": "¿Archivar esta ficha de paciente?",
+      "archiveConfirmDescription": "El paciente dejará de aparecer en los listados activos sin borrar su historial, y el archivado quedará anotado en la auditoría sin datos personales.",
+      "archiveConfirmButton": "Confirmar archivado",
+      "archivingButton": "Archivando…",
+      "archiveCancelButton": "Mantener activo",
+      "archiveErrorTitle": "No se pudo archivar el paciente",
+      "archiveErrorDescription": "No pudimos archivar esta ficha en este momento. Inténtalo de nuevo."
+    }
   }
 }
