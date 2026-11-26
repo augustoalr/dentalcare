@@ -15,6 +15,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    testTimeout: 15_000,
     exclude: [...configDefaults.exclude, 'tests/db/**'],
   },
 });

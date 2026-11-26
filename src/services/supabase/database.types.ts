@@ -83,6 +83,45 @@ export type ProfileUpdate = {
   deleted_at?: string | null;
 };
 
+export type PatientRow = {
+  id: string;
+  clinic_id: string;
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+  date_of_birth: string | null;
+  medical_alerts: string | null;
+  general_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type PatientInsert = {
+  id?: string;
+  clinic_id: string;
+  full_name: string;
+  phone?: string | null;
+  email?: string | null;
+  date_of_birth?: string | null;
+  medical_alerts?: string | null;
+  general_notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null;
+};
+
+export type PatientUpdate = {
+  full_name?: string;
+  phone?: string | null;
+  email?: string | null;
+  date_of_birth?: string | null;
+  medical_alerts?: string | null;
+  general_notes?: string | null;
+  updated_at?: string;
+  deleted_at?: string | null;
+};
+
 export type AuditLogRow = {
   id: string;
   clinic_id: string;
@@ -121,6 +160,20 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'profiles_clinic_id_fkey';
+            columns: ['clinic_id'];
+            isOneToOne: false;
+            referencedRelation: 'clinics';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      patients: {
+        Row: PatientRow;
+        Insert: PatientInsert;
+        Update: PatientUpdate;
+        Relationships: [
+          {
+            foreignKeyName: 'patients_clinic_id_fkey';
             columns: ['clinic_id'];
             isOneToOne: false;
             referencedRelation: 'clinics';
