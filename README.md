@@ -5,12 +5,12 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
 > **Aviso de seguridad (Nivel de riesgo 3 → 4):** Este proyecto maneja flujos de salud y facturación. Durante el desarrollo y las pruebas piloto se usan **exclusivamente datos sintéticos/falsos**. Nunca introduzcas datos reales de pacientes hasta completar la auditoría profesional de Nivel 4.
 
 ## Stack principal
-- **Frontend:** React 19 + Vite + TypeScript + Tailwind CSS + shadcn/ui + i18n (EN/ES) + PWA
+- **Frontend:** React 19 + Vite + TypeScript + Tailwind CSS + shadcn/ui + React Router + i18n (EN/ES) + PWA
 - **Backend y BD:** Supabase (PostgreSQL + Auth + RLS estricto por `clinic_id` + Storage privado + Edge Functions)
-- **Hosting y CI:** Vercel + GitHub Actions (check obligatorio `verify`) + Sentry + dominio en Hostinger
+- **Hosting y CI:** Vercel (`vercel.json` con rewrite SPA) + GitHub Actions (check obligatorio `verify`) + Sentry + dominio en Hostinger
 
 ## Primeros pasos
-1. *(Opcional en `T-01`/`T-02` para modo degradado y tests locales; necesario al conectar Supabase cloud)* Copia `.env.example` a `.env.local` y rellena únicamente tus claves públicas de prueba (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`; nunca subas `.env.local` a git ni expongas `SUPABASE_SERVICE_ROLE_KEY` o `SUPABASE_DB_URL` en el frontend).
+1. Copia `.env.example` a `.env.local` y rellena únicamente tus claves públicas de prueba (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`; nunca subas `.env.local` a git ni expongas `SUPABASE_SERVICE_ROLE_KEY` o `SUPABASE_DB_URL` en el frontend). Sin esas variables, `/login` muestra un aviso seguro de entorno sin configurar sin fingir sesión.
 2. Instala dependencias:
    ```bash
    pnpm install
@@ -19,20 +19,21 @@ Sistema web/PWA unificado para clínicas dentales que sustituye el caos de Excel
    ```bash
    pnpm dev
    ```
-4. Ejecuta la verificación completa (la misma que corre el CI `verify`: lint, typecheck, tests unitarios, verificación real de BD `pnpm db:verify` y build):
+4. Ejecuta la verificación completa (la misma que corre el CI `verify`: lint, typecheck, tests unitarios y de flujo, verificación real de BD `pnpm db:verify` y build):
    ```bash
    pnpm verify
    ```
 
-## Estructura principal (actualizada en `T-02`)
+## Estructura principal (actualizada en `T-03`)
 - `supabase/migrations/` — Migraciones SQL idempotentes (`202611250001_base_schema_rls.sql`) y guía de rollback en [supabase/README.md](supabase/README.md)
 - `tests/db/` — Harness PostgreSQL 17 (`pg` en CI / `@electric-sql/pglite` en local) y tests de integración multi-clínica RLS (`pnpm db:verify`)
-- `src/domain/` — Lógica pura sin dependencias de React ni navegador (`locale.ts`)
-- `src/services/` — Wrappers/adaptadores intercambiables (`storage/storageAdapter.ts`, `supabase/supabaseConfig.ts`, `supabase/supabaseClient.ts`, `supabase/database.types.ts` y `repositories/clinicAccessRepository.ts`)
-- `src/i18n/` — Traducciones `locales/en.json` y `locales/es.json` + `I18nProvider` / `useI18n`
+- `src/domain/` — Lógica pura sin dependencias de React ni Supabase (`locale.ts`, `auth.ts`: sanitización anti-open-redirect, validación de credenciales, mapeo de errores y navegación)
+- `src/services/` — Wrappers/adaptadores intercambiables (`auth/authService.ts` con `IAuthService`, `repositories/clinicAccessRepository.ts` con `IClinicAccessRepository`, `storage/storageAdapter.ts` y `supabase/`)
+- `src/features/auth/` — `AuthContext`, `LoginPage`, `ProtectedRoute`, manejo de sesión expirada, perfil ausente y modo sin configurar
+- `src/features/shell/` — `ClinicShell` responsive móvil-primero (barra lateral en escritorio + drawer accesible en móvil) con las 6 secciones de la clínica (`/schedule`, `/patients`, `/treatments`, `/quotes`, `/billing`, `/settings`)
+- `src/i18n/` — Traducciones 100% paritarias `locales/en.json` y `locales/es.json` + sincronización local y en `profiles.preferred_locale`
 - `src/ui/` — Tokens semánticos (`src/index.css`), utilidades (`cn`), primitivos `shadcn/ui` y estados base (`LoadingState`, `ErrorState`, `EmptyState`, `MedicalAlertBanner`)
-- `src/features/welcome/` — Pantalla de bienvenida responsive con selector EN/ES
-- `public/manifest.webmanifest` y `public/icons/` — Configuración PWA base
+- `vercel.json` y `public/manifest.webmanifest` — Rewrite SPA para previews/producción en Vercel y configuración PWA base
 
 ## Documentación del proyecto
 - [AGENTS.md](AGENTS.md) — Reglas permanentes (R-01 a R-19) para todos los agentes
