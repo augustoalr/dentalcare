@@ -296,6 +296,58 @@
       "archiveCancelButton": "Mantener activo",
       "archiveErrorTitle": "No se pudo archivar el paciente",
       "archiveErrorDescription": "No pudimos archivar esta ficha en este momento. Inténtalo de nuevo."
+    },
+    "files": {
+      "title": "Fotos y radiografías sintéticas",
+      "description": "Adjunta y consulta fotos intraorales privadas, radiografías sintéticas e informes PDF mediante enlaces firmados temporales.",
+      "privateBadge": "Almacenamiento privado · Enlaces temporales",
+      "syntheticNoticeTitle": "Solo archivos clínicos sintéticos",
+      "syntheticNoticeBody": "Sube únicamente imágenes ficticias de prueba o PDFs sintéticos. Nunca subas fotografías ni radiografías reales de pacientes en este entorno de pruebas.",
+      "uploadLabel": "Subir foto o radiografía sintética",
+      "uploadButton": "Seleccionar archivo para subir",
+      "uploadingButton": "Subiendo…",
+      "uploadHint": "Formatos admitidos: JPG, PNG, WEBP, PDF · Tamaño máximo: 10 MB.",
+      "uploadSuccessTitle": "Archivo sintético subido",
+      "uploadSuccessDescription": "Guardado en el espacio privado de tu clínica y accesible únicamente mediante enlaces firmados temporales.",
+      "loadingTitle": "Cargando archivos clínicos",
+      "loadingDescription": "Recuperando las fotos y radiografías sintéticas privadas de este paciente.",
+      "emptyTitle": "Todavía no hay fotos ni radiografías sintéticas",
+      "emptyDescription": "Sube arriba una imagen intraoral sintética o un informe PDF para probar el almacenamiento clínico privado.",
+      "unconfiguredTitle": "Almacenamiento clínico privado no disponible",
+      "unconfiguredDescription": "Configura las variables públicas de entorno de Supabase para subir y consultar archivos clínicos privados.",
+      "errors": {
+        "listLoadTitle": "No se pudieron cargar los archivos clínicos",
+        "listLoadDescription": "No pudimos recuperar los archivos privados de este paciente en este momento. Inténtalo de nuevo.",
+        "uploadFailedTitle": "No se pudo subir el archivo clínico",
+        "uploadFailedDescription": "El archivo no se pudo guardar en el almacenamiento privado en este momento. Inténtalo de nuevo.",
+        "signedUrlFailed": "Enlace temporal no disponible o caducado. Actualiza el enlace para verlo.",
+        "archiveFailedTitle": "No se pudo archivar el archivo clínico",
+        "archiveFailedDescription": "No pudimos archivar este archivo en este momento. Inténtalo de nuevo."
+      },
+      "validation": {
+        "unsupportedMimeType": "Formato de archivo no permitido. Sube una imagen JPG, PNG, WEBP o un documento PDF.",
+        "fileEmpty": "El archivo seleccionado está vacío. Elige un archivo válido para subir.",
+        "fileTooLarge": "El archivo supera el límite máximo de 10 MB.",
+        "fileNameInvalid": "Nombre de archivo no válido. Renombra el archivo (máximo 255 caracteres) e inténtalo de nuevo."
+      },
+      "card": {
+        "previewLoading": "Generando vista previa temporal…",
+        "pdfPreviewLabel": "Documento PDF privado",
+        "imagePreviewAlt": "Archivo clínico sintético: {name}",
+        "openButton": "Abrir / Ver",
+        "openingButton": "Preparando enlace…",
+        "refreshLinkButton": "Actualizar enlace",
+        "refreshingLinkButton": "Actualizando…",
+        "archiveButton": "Archivar archivo",
+        "uploadedOn": "Subido el {date}"
+      },
+      "archiveConfirm": {
+        "title": "¿Archivar este archivo clínico?",
+        "description": "El archivo dejará de mostrarse en la ficha del paciente, se revocará al instante el acceso a nuevos enlaces firmados y quedará anotado en la auditoría sin datos personales.",
+        "confirmButton": "Confirmar archivado",
+        "archivingButton": "Archivando…",
+        "cancelButton": "Mantener activo"
+      }
     }
   }
 }

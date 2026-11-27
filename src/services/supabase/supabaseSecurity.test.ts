@@ -4,6 +4,7 @@ import process from 'node:process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SupabaseAuthService } from '@/services/auth/authService';
 import { SupabaseClinicAccessRepository } from '@/services/repositories/clinicAccessRepository';
+import { SupabasePatientFileRepository } from '@/services/repositories/patientFileRepository';
 import { SupabasePatientRepository } from '@/services/repositories/patientRepository';
 import {
   createSupabaseClient,
@@ -549,6 +550,222 @@ describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
     expect(thrownError?.message).not.toContain('anxious');
     expect(consoleErrorSpy).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
+  });
+
+  it('enforces private bucket upsert:false, 7-column metadata insert, clamped signed URLs, soft-delete without .select()/.delete()/.remove(), and zero PII/token leakage in SupabasePatientFileRepository', async () => {
+    const clinicId = '11111111-1111-4111-8111-111111111111';
+    const patientId = '22222222-2222-4222-8222-222222222222';
+    const uploadedBy = '33333333-3333-4333-8333-333333333333';
+
+    const uploadSpy = vi.fn().mockResolvedValue({ data: { path: 'ok' }, error: null });
+    const createSignedUrlSpy = vi.fn().mockResolvedValue({
+      data: {
+        signedUrl:
+          'https://example.supabase.co/storage/v1/object/sign/patient-files/path?token=super-secret-signed-token',
+      },
+      error: null,
+    });
+    const removeSpy = vi.fn();
+    const storageFromSpy = vi.fn().mockReturnValue({
+      upload: uploadSpy,
+      createSignedUrl: createSignedUrlSpy,
+      remove: removeSpy,
+    });
+
+    const insertSingleSpy = vi.fn().mockImplementation(() => {
+      const uploadedPath = uploadSpy.mock.calls[0]?.[0] as string;
+      return Promise.resolve({
+        data: {
+          id: '44444444-4444-4444-8444-444444444444',
+          clinic_id: clinicId,
+          patient_id: patientId,
+          appointment_id: null,
+          storage_path: uploadedPath,
+          file_name: 'intraoral_clean.png',
+          mime_type: 'image/png',
+          file_size_bytes: 16,
+          uploaded_by: uploadedBy,
+          created_at: '2026-11-26T12:00:00Z',
+          updated_at: '2026-11-26T12:00:00Z',
+          deleted_at: null,
+        },
+        error: null,
+      });
+    });
+    const insertSelectSpy = vi.fn().mockReturnValue({ single: insertSingleSpy });
+    const insertSpy = vi.fn().mockReturnValue({ select: insertSelectSpy });
+
+    const archiveSelectSpy = vi.fn();
+    const isSpy = vi.fn().mockImplementation(() => {
+      const archivePromise = Promise.resolve({
+        data: null,
+        error: null,
+      }) as Promise<{ data: null; error: null }> & {
+        select: typeof archiveSelectSpy;
+      };
+      archivePromise.select = archiveSelectSpy;
+      return archivePromise;
+    });
+    const eqSpy = vi.fn().mockReturnValue({ is: isSpy });
+    const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy });
+    const deleteSpy = vi.fn();
+    const fromSpy = vi.fn().mockReturnValue({
+      insert: insertSpy,
+      update: updateSpy,
+      delete: deleteSpy,
+    });
+
+    const mockClient = {
+      from: fromSpy,
+      storage: { from: storageFromSpy },
+    } as unknown as DentalCareSupabaseClient;
+
+    const repo = new SupabasePatientFileRepository(mockClient);
+
+    // 1. uploadPatientFile uses private bucket 'patient-files', upsert:false, and inserts ONLY the 7 allowed columns with sanitized values
+    const syntheticFile = new File(['synthetic-bytes!'], 'folder/intraoral_clean\u0000.png', {
+      type: 'IMAGE/PNG; charset=binary',
+    });
+
+    const uploadedRecord = await repo.uploadPatientFile({
+      clinicId,
+      patientId,
+      uploadedBy,
+      file: syntheticFile,
+    });
+
+    expect(storageFromSpy).toHaveBeenCalledWith('patient-files');
+    expect(uploadSpy).toHaveBeenCalledTimes(1);
+    const [uploadedStoragePath, uploadedBlob, uploadOptions] =
+      uploadSpy.mock.calls[0] as [string, File, Record<string, unknown>];
+    expect(uploadedStoragePath).toMatch(
+      new RegExp(`^${clinicId}/${patientId}/[0-9a-f-]{36}\\.png$`),
+    );
+    expect(uploadedBlob).toBe(syntheticFile);
+    expect(uploadOptions).toEqual({
+      contentType: 'image/png',
+      upsert: false,
+    });
+
+    const insertPayload = insertSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(insertPayload).sort()).toEqual([
+      'clinic_id',
+      'file_name',
+      'file_size_bytes',
+      'mime_type',
+      'patient_id',
+      'storage_path',
+      'uploaded_by',
+    ]);
+    expect(insertPayload.file_name).toBe('intraoral_clean.png');
+    expect(insertPayload.mime_type).toBe('image/png');
+    expect(insertPayload).not.toHaveProperty('id');
+    expect(insertPayload).not.toHaveProperty('deleted_at');
+    expect(Object.isFrozen(uploadedRecord)).toBe(true);
+
+    // 2. createSignedFileUrl clamps TTL safely across edge values (NaN, Infinity, decimals, <=0, >300)
+    await repo.createSignedFileUrl(uploadedStoragePath);
+    expect(createSignedUrlSpy).toHaveBeenLastCalledWith(uploadedStoragePath, 300);
+
+    await repo.createSignedFileUrl(uploadedStoragePath, 9999);
+    expect(createSignedUrlSpy).toHaveBeenLastCalledWith(uploadedStoragePath, 300);
+
+    await repo.createSignedFileUrl(uploadedStoragePath, Number.NaN);
+    expect(createSignedUrlSpy).toHaveBeenLastCalledWith(uploadedStoragePath, 300);
+
+    await repo.createSignedFileUrl(uploadedStoragePath, Number.POSITIVE_INFINITY);
+    expect(createSignedUrlSpy).toHaveBeenLastCalledWith(uploadedStoragePath, 300);
+
+    await repo.createSignedFileUrl(uploadedStoragePath, 0);
+    expect(createSignedUrlSpy).toHaveBeenLastCalledWith(uploadedStoragePath, 1);
+
+    await repo.createSignedFileUrl(uploadedStoragePath, -12);
+    expect(createSignedUrlSpy).toHaveBeenLastCalledWith(uploadedStoragePath, 1);
+
+    await repo.createSignedFileUrl(uploadedStoragePath, 45.9);
+    expect(createSignedUrlSpy).toHaveBeenLastCalledWith(uploadedStoragePath, 45);
+
+    // 3. archivePatientFile sets ONLY deleted_at without .select(), never calls .delete() or storage.remove()
+    await repo.archivePatientFile('44444444-4444-4444-8444-444444444444');
+    const archivePayload = updateSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(archivePayload)).toEqual(['deleted_at']);
+    expect(typeof archivePayload.deleted_at).toBe('string');
+    expect(archiveSelectSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
+    expect(removeSpy).not.toHaveBeenCalled();
+
+    // 4. Privacy in errors: never leaks fileName, storagePath, or signed URL tokens
+    uploadSpy.mockResolvedValueOnce({
+      data: null,
+      error: {
+        statusCode: '403',
+        message: `Access denied for ${uploadedStoragePath} (Layla_Private_Xray.png)`,
+      },
+    });
+
+    let uploadErr: Error | null = null;
+    try {
+      await repo.uploadPatientFile({
+        clinicId,
+        patientId,
+        uploadedBy,
+        file: new File(['bytes'], 'Layla_Private_Xray.png', { type: 'image/png' }),
+      });
+    } catch (err) {
+      uploadErr = err as Error;
+    }
+
+    expect(uploadErr?.message).toBe(
+      'Failed to upload clinical file to private storage (code: 403)',
+    );
+    expect(uploadErr?.message).not.toContain('Layla');
+    expect(uploadErr?.message).not.toContain(clinicId);
+    expect(uploadErr?.message).not.toContain(patientId);
+
+    createSignedUrlSpy.mockResolvedValueOnce({
+      data: null,
+      error: {
+        statusCode: '400',
+        message: `Failed signing ${uploadedStoragePath}?token=LEAKED_SECRET_TOKEN`,
+      },
+    });
+
+    let signErr: Error | null = null;
+    try {
+      await repo.createSignedFileUrl(uploadedStoragePath, 120);
+    } catch (err) {
+      signErr = err as Error;
+    }
+
+    expect(signErr?.message).toBe(
+      'Failed to generate temporary signed file URL (code: 400)',
+    );
+    expect(signErr?.message).not.toContain(uploadedStoragePath);
+    expect(signErr?.message).not.toContain('LEAKED_SECRET_TOKEN');
+  });
+
+  it('never calls getPublicUrl anywhere in src/ (private Storage signed URLs only)', () => {
+    const srcRoot = path.resolve(process.cwd(), 'src');
+    const currentTestFile = path.resolve(
+      srcRoot,
+      'services',
+      'supabase',
+      'supabaseSecurity.test.ts',
+    );
+    const forbiddenPublicUrlCall = ['get', 'Public', 'Url'].join('');
+
+    const files = collectSourceFiles(srcRoot).filter(
+      (filePath) => path.resolve(filePath) !== path.resolve(currentTestFile),
+    );
+    expect(files.length).toBeGreaterThan(0);
+
+    for (const filePath of files) {
+      const content = readFileSync(filePath, 'utf8');
+      expect(
+        content.includes(forbiddenPublicUrlCall),
+        `Forbidden "${forbiddenPublicUrlCall}" reference found in ${filePath}`,
+      ).toBe(false);
+    }
   });
 
   it('never imports @supabase/supabase-js directly inside domain, features, or ui layers (SoC)', () => {
