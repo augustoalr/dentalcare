@@ -1,12 +1,12 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-27 08:08 GST por Manager (Inicio Coder T-06b tras APTO del Revisor en `37148b8`)
+Última actualización: 2026-11-27 12:24 GST por Manager (Cierre T-06b en `48e5051` y prompt T-07 en revisión R-02)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-06b` — Archivados + Restauración + Purga de Espacio (`admin` y ventana 15 min autor), Reemplazo/Optimización de Imágenes y Ajuste Móvil (`[DELICADA]`, prompt `APTO` por el Revisor en `37148b8`, entregado al Coder `T-06b archivados-purga-movil`)
-- Bloqueado por el humano: Ninguno (`dentalcare-dev` tiene migraciones `T-02`–`T-06` aplicadas + cuentas sintéticas listas)
-- Próxima tarea propuesta: `T-07` — Catálogo de Tratamientos (Precios en Céntimos, EN/ES) (`[DELICADA]`, tras fusionar `T-06b`)
+- En curso: `T-07` — Catálogo de Tratamientos (Precios en Céntimos, EN/ES) (`[DELICADA]`, prompt `docs/prompts/T-07.md` pendiente de `APTO` en conversación nueva `Revisor T-07`, R-02)
+- Bloqueado por el humano: Ninguno (`dentalcare-dev` tiene migraciones `T-02`–`T-06b` aplicadas + cuentas sintéticas listas)
+- Próxima tarea propuesta: `T-08` — Agenda de Citas + Notas Clínicas por Visita + Panel del Día (`[DELICADA]`, tras fusionar `T-07`)
 
 ## Tabla de tareas
 
@@ -18,8 +18,8 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-04 Config clínica multi-país | T-04 config-clinica | `t-04-config-clinica` | — (en serie) | #13 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`4f29b67`) | 2 (PR, ajuste VE) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `8351db87`; preview en vivo contra `dentalcare-dev` + `audit_log`: PASÓ |
 | T-05 Pacientes + Alertas rojas | T-05 pacientes-alertas | `t-05-pacientes-alertas` | — (en serie) | #16 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`ad91f23`) | 1 (PR) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `d1bc7778`; preview en vivo + `patient.archived` sin PII en `dentalcare-dev`: PASÓ |
 | T-06 Archivos clínicos privados | T-06 archivos-privados | `t-06-archivos-privados` | — (en serie) | #20 | ✅ Fusionada | 2026-11-26 | 2026-11-27 (`2e864a1`) | 1 (PR) / 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `0e2a5e23`; preview en vivo + bucket privado + `patient_file.archived` sin PII en `dentalcare-dev`: PASÓ |
-| T-06b Archivados, purga espacio (admin + 15 min), optimización y móvil | T-06b archivados-purga-movil | `t-06b-archivados-purga-movil` | — (en serie) | — | 🛠️ En curso | 2026-11-27 | | 2 (prompt) | 3 (en prompt: B-01 `created_at` spoofing, B-02 `USING` vs `42501`, B-03 `storage.remove` `data: []`) | `[DELICADA]` Prompt `APTO` por Revisor (`37148b8`), en manos del Coder |
-| T-07 Catálogo de tratamientos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-04 |
+| T-06b Archivados, purga espacio (admin + 15 min), optimización y móvil | T-06b archivados-purga-movil | `t-06b-archivados-purga-movil` | — (en serie) | #26 | ✅ Fusionada | 2026-11-27 | 2026-11-27 (`48e5051`) | 2 (PR) / 2 (prompt) | 4 (3 en prompt: B-01/B-02/B-03; 1 en PR: orden rollback `README`) | `[DELICADA]` Revisor `APROBADO` en `b9c0757a`; preview móvil/escritorio + `restored`/`purged` sin PII en `dentalcare-dev`: PASÓ |
+| T-07 Catálogo de tratamientos | Revisor T-07 (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-27 | | 1 (prompt) | | `[DELICADA]` Prompt `docs/prompts/T-07.md` enviado a Revisor para `APTO` |
 | T-08 Agenda + Notas + Panel del día | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
 | T-09 Recordatorios WhatsApp (`wa.me`) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | Depende de T-08 |
 | T-09b Modo bimoneda (USD + Bs. + tasa del día) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Decisión Opción A de Augusto; antes de T-10 y T-11 |
@@ -35,12 +35,12 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - [x] Crear repo GitHub, subir archivos base y activar protección de `main` con check `"verify"`
 - [x] Abrir conversación nueva `"Manager"` en Fase E
 - [x] Previews automáticos de Vercel conectados y verificados en PR #3 (`T-01`), PR #10 (`T-03`) y PR #13 (`T-04`)
-- [x] Variables públicas de Supabase configuradas en Vercel + migraciones `T-02`/`T-04`/`T-05`/`T-06` (bucket privado `patient-files`) y cuentas sintéticas (`admin`/`dentist`) aplicadas en `dentalcare-dev`
-- [ ] *(Opcional, higiene)* Eliminar el proyecto duplicado en una de las dos cuentas de Vercel (`tico17` vs `augustoalrs-projects`) para tener un único enlace de preview por PR
+- [x] Variables públicas de Supabase configuradas en Vercel + migraciones `T-02`–`T-06b` (bucket privado `patient-files` + purga controlada) y cuentas sintéticas (`admin`/`dentist`) aplicadas en `dentalcare-dev`
+- [x] Preview unificado en Vercel (`tico17`) verificado en PR #26
 - [ ] Configurar cuenta gratuita de Sentry antes de `T-12`
 
 ## Problemas abiertos conocidos
-- **UX móvil (no bloqueante, detectado por Augusto en `T-06`):** en pantalla estrecha de teléfono, el nombre del paciente en `PatientDetailPage.tsx` / `PatientListCard.tsx` se ve comprimido o cortado; se corregirá en `T-06b` (o en el próximo PR de UI).
+- Ninguno por ahora.
 
 ## Documentos pendientes
 - `docs/DEPLOY.md` → `T-12`, antes del primer deploy de pruebas con la Dra. Nur
@@ -48,5 +48,5 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - Privacidad y términos → `T-14`, obligatorio antes de admitir usuarios/pacientes reales
 
 ## Métricas (actualizar al cerrar cada tarea)
-- Lead time medio: ~2 h (6 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 4
-- CI verde al primer intento: 5 / 6 · Lecciones anotadas: 7
+- Lead time medio: ~2 h (7 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 5
+- CI verde al primer intento: 6 / 7 · Lecciones anotadas: 8
