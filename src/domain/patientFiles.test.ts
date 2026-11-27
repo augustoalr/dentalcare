@@ -3,9 +3,11 @@ import {
   ALLOWED_PATIENT_FILE_MIME_TYPES,
   PATIENT_FILE_MAX_SIZE_BYTES,
   PATIENT_FILE_NAME_MAX_LENGTH,
+  PATIENT_FILE_SELF_PURGE_WINDOW_MS,
   PATIENT_FILE_SIGNED_URL_TTL_SECONDS,
   PATIENT_FILES_BUCKET_ID,
   buildPatientFileStoragePath,
+  canSelfPurgeMistakenUpload,
   formatFileSize,
   formatPatientFileDate,
   getPatientFileTypeBadge,
@@ -245,5 +247,82 @@ describe('patientFiles pure domain (T-06)', () => {
     expect(formatPatientFileDate('2026-11-26T14:30:00Z', 'es')).toBe(
       '26/11/2026',
     );
+  });
+
+  it('evaluates 15-minute mistaken-upload self-purge window strictly by uploader and age (T-06b)', () => {
+    expect(PATIENT_FILE_SELF_PURGE_WINDOW_MS).toBe(15 * 60 * 1000);
+    const referenceDate = new Date('2026-11-27T10:15:00Z');
+
+    // Same uploader, uploaded 5 minutes ago -> true
+    expect(
+      canSelfPurgeMistakenUpload(
+        {
+          uploadedBy: FILE_UUID,
+          createdAt: '2026-11-27T10:10:00Z',
+        },
+        FILE_UUID.toUpperCase(),
+        referenceDate,
+      ),
+    ).toBe(true);
+
+    // Same uploader, exact 15-minute boundary -> true
+    expect(
+      canSelfPurgeMistakenUpload(
+        {
+          uploadedBy: FILE_UUID,
+          createdAt: '2026-11-27T10:00:00Z',
+        },
+        FILE_UUID,
+        referenceDate,
+      ),
+    ).toBe(true);
+
+    // Same uploader, 15 minutes + 1 second ago -> false
+    expect(
+      canSelfPurgeMistakenUpload(
+        {
+          uploadedBy: FILE_UUID,
+          createdAt: '2026-11-27T09:59:59Z',
+        },
+        FILE_UUID,
+        referenceDate,
+      ),
+    ).toBe(false);
+
+    // Future createdAt (negative age) -> false
+    expect(
+      canSelfPurgeMistakenUpload(
+        {
+          uploadedBy: FILE_UUID,
+          createdAt: '2026-11-27T10:16:00Z',
+        },
+        FILE_UUID,
+        referenceDate,
+      ),
+    ).toBe(false);
+
+    // Different uploader within 15 minutes -> false
+    expect(
+      canSelfPurgeMistakenUpload(
+        {
+          uploadedBy: FILE_UUID,
+          createdAt: '2026-11-27T10:14:00Z',
+        },
+        CLINIC_UUID,
+        referenceDate,
+      ),
+    ).toBe(false);
+
+    // Null / blank userId -> false
+    expect(
+      canSelfPurgeMistakenUpload(
+        {
+          uploadedBy: FILE_UUID,
+          createdAt: '2026-11-27T10:14:00Z',
+        },
+        null,
+        referenceDate,
+      ),
+    ).toBe(false);
   });
 });

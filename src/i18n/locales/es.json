@@ -204,6 +204,34 @@
     "closeFormButton": "Cerrar formulario",
     "unconfiguredTitle": "Directorio de pacientes no disponible",
     "unconfiguredDescription": "Configura las variables públicas de entorno de Supabase para cargar y gestionar pacientes.",
+    "tabs": {
+      "ariaLabel": "Filtro del listado de pacientes",
+      "active": "Activos",
+      "archived": "Archivados"
+    },
+    "archived": {
+      "countSingle": "1 paciente archivado",
+      "countPlural": "{count} pacientes archivados",
+      "badge": "Archivado",
+      "archivedOn": "Archivado el {date}",
+      "statusHint": "Archivado — oculto de la agenda y lista activa",
+      "restoreButton": "Restaurar paciente",
+      "emptyTitle": "No hay pacientes archivados",
+      "emptyDescription": "Los pacientes archivados por tu clínica aparecerán aquí para que administración pueda revisarlos o restaurarlos.",
+      "loadErrorTitle": "No se pudieron cargar los pacientes archivados",
+      "loadErrorDescription": "No pudimos recuperar las fichas archivadas en este momento. Inténtalo de nuevo.",
+      "restoreSuccessTitle": "Paciente restaurado",
+      "restoreSuccessDescription": "El paciente vuelve a estar activo y visible en el listado de tu clínica.",
+      "restoreConfirm": {
+        "title": "¿Restaurar este paciente archivado?",
+        "description": "El paciente volverá a aparecer en los listados activos y la restauración quedará anotada en la auditoría sin datos personales.",
+        "confirmButton": "Confirmar restauración",
+        "restoringButton": "Restaurando…",
+        "cancelButton": "Mantener archivado",
+        "errorTitle": "No se pudo restaurar el paciente",
+        "errorDescription": "No pudimos restaurar este paciente en este momento. Inténtalo de nuevo."
+      }
+    },
     "search": {
       "label": "Buscar pacientes",
       "placeholder": "Buscar por nombre, teléfono o correo…",
@@ -347,6 +375,70 @@
         "confirmButton": "Confirmar archivado",
         "archivingButton": "Archivando…",
         "cancelButton": "Mantener activo"
+      },
+      "tabs": {
+        "ariaLabel": "Filtro de archivos clínicos",
+        "active": "Activos",
+        "archived": "Archivados"
+      },
+      "optimization": {
+        "preserveOriginalLabel": "Mantener calidad original (recomendado para radiografías)",
+        "preserveOriginalHint": "Las imágenes grandes (> 1 MB) se optimizan automáticamente para ahorrar espacio. Los PDFs nunca se modifican.",
+        "savedSummary": "Optimizada de {original} a {final} antes de subir."
+      },
+      "replace": {
+        "button": "Reemplazar",
+        "replacingButton": "Reemplazando…",
+        "inputAria": "Seleccionar archivo de reemplazo para {name}",
+        "successTitle": "Archivo clínico reemplazado",
+        "successDescription": "El nuevo archivo se subió correctamente y la versión anterior fue archivada.",
+        "errorTitle": "No se pudo reemplazar el archivo clínico",
+        "errorDescription": "Falló la subida del archivo nuevo, por lo que el archivo anterior se mantuvo intacto. Inténtalo de nuevo.",
+        "archivePreviousErrorDescription": "El nuevo archivo se subió, pero no se pudo archivar automáticamente la versión anterior. Puedes archivarlo manualmente."
+      },
+      "selfPurge": {
+        "button": "Eliminar por error",
+        "successTitle": "Subida reciente eliminada",
+        "successDescription": "El archivo subido por error se eliminó del almacenamiento para liberar espacio y quedó anotado en la auditoría.",
+        "confirmTitle": "¿Eliminar este archivo subido por error?",
+        "confirmDescription": "Elimina este archivo subido recientemente y libera el espacio en almacenamiento. No se puede deshacer.",
+        "confirmButton": "Confirmar eliminación",
+        "deletingButton": "Eliminando…",
+        "cancelButton": "Cancelar",
+        "errorTitle": "No se pudo eliminar el archivo reciente",
+        "errorDescription": "Es posible que haya pasado la ventana de 15 minutos o que ocurriera un error de conexión. Puedes archivarlo en su lugar."
+      },
+      "archived": {
+        "badge": "Archivado",
+        "archivedOn": "Archivado el {date}",
+        "emptyTitle": "No hay archivos clínicos archivados",
+        "emptyDescription": "Las fotos y radiografías sintéticas archivadas de este paciente aparecerán aquí para que administración pueda restaurarlas o liberar espacio.",
+        "loadErrorTitle": "No se pudieron cargar los archivos archivados",
+        "loadErrorDescription": "No pudimos recuperar los archivos clínicos archivados en este momento. Inténtalo de nuevo.",
+        "restoreButton": "Restaurar",
+        "restoreSuccessTitle": "Archivo clínico restaurado",
+        "restoreSuccessDescription": "El archivo vuelve a estar activo en la ficha del paciente.",
+        "restoreConfirm": {
+          "title": "¿Restaurar este archivo clínico?",
+          "description": "El archivo volverá a mostrarse en los adjuntos clínicos activos y la restauración quedará anotada en la auditoría sin datos personales.",
+          "confirmButton": "Confirmar restauración",
+          "restoringButton": "Restaurando…",
+          "cancelButton": "Mantener archivado",
+          "errorTitle": "No se pudo restaurar el archivo clínico",
+          "errorDescription": "No pudimos restaurar este archivo en este momento. Inténtalo de nuevo."
+        },
+        "purgeButton": "Eliminar definitivamente",
+        "purgeSuccessTitle": "Archivo eliminado definitivamente",
+        "purgeSuccessDescription": "El archivo se eliminó del almacenamiento para liberar espacio conservando el registro anónimo de auditoría.",
+        "purgeConfirm": {
+          "title": "¿Eliminar definitivamente del almacenamiento?",
+          "description": "Borra el archivo del almacenamiento para liberar espacio. Esta acción no se puede deshacer.",
+          "confirmButton": "Confirmar eliminación definitiva",
+          "purgingButton": "Eliminando…",
+          "cancelButton": "Mantener archivado",
+          "errorTitle": "No se pudo eliminar definitivamente el archivo",
+          "errorDescription": "No se pudo eliminar el archivo del almacenamiento en este momento. Inténtalo de nuevo."
+        }
       }
     }
   }

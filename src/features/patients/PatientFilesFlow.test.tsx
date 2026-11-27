@@ -8,6 +8,7 @@ import type { SupportedLocale } from '@/domain/locale';
 import {
   PATIENT_FILE_MAX_SIZE_BYTES,
   type AllowedPatientFileMimeType,
+  type ArchivedPatientFileRecord,
   type PatientFileRecord,
 } from '@/domain/patientFiles';
 import type { PatientRecord } from '@/domain/patients';
@@ -16,6 +17,7 @@ import { I18nProvider } from '@/i18n';
 import en from '@/i18n/locales/en.json';
 import es from '@/i18n/locales/es.json';
 import type { IAuthService } from '@/services/auth/authService';
+import type { IImageOptimizer } from '@/services/media/imageOptimizer';
 import type {
   ClinicSummary,
   IClinicAccessRepository,
@@ -26,6 +28,7 @@ import type {
   UploadPatientFileParams,
 } from '@/services/repositories/patientFileRepository';
 import type { IPatientRepository } from '@/services/repositories/patientRepository';
+import type { ClinicRole } from '@/services/supabase/database.types';
 import { InMemoryStorageAdapter } from '@/services/storage/storageAdapter';
 
 const SYNTHETIC_USER: AuthSessionUser = Object.freeze({
@@ -59,12 +62,18 @@ const SYNTHETIC_PATIENT: PatientRecord = Object.freeze({
 
 function createSyntheticProfile(
   preferredLocale: SupportedLocale = 'en',
+  role: ClinicRole = 'dentist',
 ): UserProfile {
   return Object.freeze({
     id: SYNTHETIC_USER.id,
     clinicId: SYNTHETIC_CLINIC.id,
-    fullName: 'Dr. Nur Synthetic Dentist',
-    role: 'dentist',
+    fullName:
+      role === 'admin'
+        ? 'Admin Alpha Synthetic'
+        : role === 'receptionist'
+          ? 'Receptionist Alpha Synthetic'
+          : 'Dr. Nur Synthetic Dentist',
+    role,
     preferredLocale,
     isActive: true,
   });
@@ -72,8 +81,10 @@ function createSyntheticProfile(
 
 function createInMemoryPatientFileRepository(
   seedFiles: readonly PatientFileRecord[] = [],
+  seedArchivedFiles: readonly ArchivedPatientFileRecord[] = [],
 ) {
   let store: PatientFileRecord[] = [...seedFiles];
+  let archivedStore: ArchivedPatientFileRecord[] = [...seedArchivedFiles];
   let seq = 1;
 
   const listPatientFiles = vi
@@ -81,6 +92,16 @@ function createInMemoryPatientFileRepository(
     .mockImplementation(async (clinicId: string, patientId: string) =>
       Object.freeze(
         store.filter(
+          (item) => item.clinicId === clinicId && item.patientId === patientId,
+        ),
+      ),
+    );
+
+  const listArchivedPatientFiles = vi
+    .fn<IPatientFileRepository['listArchivedPatientFiles']>()
+    .mockImplementation(async (clinicId: string, patientId: string) =>
+      Object.freeze(
+        archivedStore.filter(
           (item) => item.clinicId === clinicId && item.patientId === patientId,
         ),
       ),
@@ -124,31 +145,74 @@ function createInMemoryPatientFileRepository(
   const archivePatientFile = vi
     .fn<IPatientFileRepository['archivePatientFile']>()
     .mockImplementation(async (fileId: string) => {
+      const existing = store.find((item) => item.id === fileId);
+      store = store.filter((item) => item.id !== fileId);
+      if (existing) {
+        archivedStore = [
+          Object.freeze({ ...existing, deletedAt: '2026-11-27T08:00:00Z' }),
+          ...archivedStore,
+        ];
+      }
+    });
+
+  const restorePatientFile = vi
+    .fn<IPatientFileRepository['restorePatientFile']>()
+    .mockImplementation(async (fileId: string) => {
+      const existing = archivedStore.find((item) => item.id === fileId);
+      archivedStore = archivedStore.filter((item) => item.id !== fileId);
+      if (existing) {
+        const { deletedAt: _removed, ...activeRecord } = existing;
+        void _removed;
+        store = [Object.freeze(activeRecord), ...store];
+      }
+    });
+
+  const purgeArchivedPatientFile = vi
+    .fn<IPatientFileRepository['purgeArchivedPatientFile']>()
+    .mockImplementation(async (fileId: string) => {
+      archivedStore = archivedStore.filter((item) => item.id !== fileId);
+    });
+
+  const purgeMistakenUpload = vi
+    .fn<IPatientFileRepository['purgeMistakenUpload']>()
+    .mockImplementation(async (fileId: string) => {
       store = store.filter((item) => item.id !== fileId);
     });
 
   const repository: IPatientFileRepository = {
     listPatientFiles,
+    listArchivedPatientFiles,
     uploadPatientFile,
     createSignedFileUrl,
     archivePatientFile,
+    restorePatientFile,
+    purgeArchivedPatientFile,
+    purgeMistakenUpload,
   };
 
   return {
     repository,
     listPatientFiles,
+    listArchivedPatientFiles,
     uploadPatientFile,
     createSignedFileUrl,
     archivePatientFile,
+    restorePatientFile,
+    purgeArchivedPatientFile,
+    purgeMistakenUpload,
   };
 }
 
 function renderPatientChartWithFiles(options?: {
   initialLocale?: SupportedLocale;
+  role?: ClinicRole;
   seedFiles?: readonly PatientFileRecord[];
+  seedArchivedFiles?: readonly ArchivedPatientFileRecord[];
   patientFileRepository?: IPatientFileRepository | null;
+  imageOptimizer?: IImageOptimizer;
 }) {
   const locale = options?.initialLocale ?? 'en';
+  const role = options?.role ?? 'dentist';
 
   const authService: IAuthService = {
     getCurrentSession: vi.fn().mockResolvedValue(SYNTHETIC_USER),
@@ -161,7 +225,7 @@ function renderPatientChartWithFiles(options?: {
     getActiveClinic: vi.fn().mockResolvedValue(SYNTHETIC_CLINIC),
     getCurrentProfile: vi
       .fn()
-      .mockResolvedValue(createSyntheticProfile(locale)),
+      .mockResolvedValue(createSyntheticProfile(locale, role)),
     updatePreferredLocale: vi.fn().mockResolvedValue(undefined),
     updateClinicSettings: vi.fn(),
     appendAuditLog: vi.fn().mockResolvedValue(undefined),
@@ -169,13 +233,18 @@ function renderPatientChartWithFiles(options?: {
 
   const patientRepository: IPatientRepository = {
     listPatients: vi.fn().mockResolvedValue([SYNTHETIC_PATIENT]),
+    listArchivedPatients: vi.fn().mockResolvedValue([]),
     getPatientById: vi.fn().mockResolvedValue(SYNTHETIC_PATIENT),
     createPatient: vi.fn(),
     updatePatient: vi.fn(),
     archivePatient: vi.fn(),
+    restorePatient: vi.fn(),
   };
 
-  const fileRig = createInMemoryPatientFileRepository(options?.seedFiles ?? []);
+  const fileRig = createInMemoryPatientFileRepository(
+    options?.seedFiles ?? [],
+    options?.seedArchivedFiles ?? [],
+  );
   const activeFileRepo =
     options && 'patientFileRepository' in options
       ? options.patientFileRepository
@@ -196,6 +265,7 @@ function renderPatientChartWithFiles(options?: {
             <AppRoutes
               patientRepository={patientRepository}
               patientFileRepository={activeFileRepo}
+              imageOptimizer={options?.imageOptimizer}
             />
           </MemoryRouter>
         </AuthProvider>
@@ -484,5 +554,395 @@ describe('T-06 Patient private clinical files UI & signed URL flow', () => {
     expect(
       screen.getByRole('button', { name: es.patients.files.uploadButton }),
     ).toBeInTheDocument();
+  });
+
+  it('6. Respects "Keep original quality" checkbox and displays optimization savings in role="status" banner (T-06b)', async () => {
+    const user = userEvent.setup();
+    const optimizeSpy = vi.fn<IImageOptimizer['optimizeIfNeeded']>();
+
+    optimizeSpy.mockImplementationOnce(async () => {
+      const optimized = new File(['small-webp'], 'panoramic-optimized.webp', {
+        type: 'image/webp',
+      });
+      Object.defineProperty(optimized, 'size', { value: 491_520 }); // 480 KB
+      return Object.freeze({
+        file: optimized,
+        wasOptimized: true,
+        originalSizeBytes: 4_404_019, // 4.2 MB
+        finalSizeBytes: 491_520,
+      });
+    });
+
+    optimizeSpy.mockImplementationOnce(async (file) =>
+      Object.freeze({
+        file,
+        wasOptimized: false,
+        originalSizeBytes: file.size,
+        finalSizeBytes: file.size,
+      }),
+    );
+
+    const { uploadPatientFile } = renderPatientChartWithFiles({
+      seedFiles: [],
+      imageOptimizer: { optimizeIfNeeded: optimizeSpy },
+    });
+
+    expect(
+      await screen.findByText(en.patients.files.emptyTitle),
+    ).toBeInTheDocument();
+
+    const preserveCheckbox = screen.getByLabelText(
+      en.patients.files.optimization.preserveOriginalLabel,
+    );
+    expect(preserveCheckbox).not.toBeChecked();
+
+    const fileInput = screen.getByLabelText(en.patients.files.uploadLabel);
+    const largePhoto = new File(['raw-large-jpeg'], 'large-intraoral.jpg', {
+      type: 'image/jpeg',
+    });
+    Object.defineProperty(largePhoto, 'size', { value: 4_404_019 });
+
+    fireEvent.change(fileInput, { target: { files: [largePhoto] } });
+
+    await waitFor(() => {
+      expect(optimizeSpy).toHaveBeenCalledWith(largePhoto, {
+        preserveOriginalQuality: false,
+      });
+      expect(uploadPatientFile).toHaveBeenCalledTimes(1);
+    });
+
+    const statusBanner = await screen.findByRole('status');
+    expect(statusBanner).toHaveTextContent(en.patients.files.uploadSuccessTitle);
+    expect(statusBanner).toHaveTextContent('4.2 MB');
+    expect(statusBanner).toHaveTextContent('480 KB');
+
+    // Now check "Keep original quality" -> passes preserveOriginalQuality: true
+    await user.click(preserveCheckbox);
+    expect(preserveCheckbox).toBeChecked();
+
+    const xrayPhoto = new File(['raw-xray-png'], 'synthetic-xray.png', {
+      type: 'image/png',
+    });
+    fireEvent.change(fileInput, { target: { files: [xrayPhoto] } });
+
+    await waitFor(() => {
+      expect(optimizeSpy).toHaveBeenLastCalledWith(xrayPhoto, {
+        preserveOriginalQuality: true,
+      });
+    });
+  });
+
+  it('7. Replace button uploads new file FIRST and only archives previous file on success; failed replacement keeps previous file intact (T-06b)', async () => {
+    const initialFile: PatientFileRecord = Object.freeze({
+      id: '77777777-7777-4777-8777-777777777771',
+      clinicId: SYNTHETIC_CLINIC.id,
+      patientId: SYNTHETIC_PATIENT.id,
+      appointmentId: null,
+      storagePath: `${SYNTHETIC_CLINIC.id}/${SYNTHETIC_PATIENT.id}/77777777-7777-4777-8777-777777777771.jpg`,
+      fileName: 'old-intraoral.jpg',
+      mimeType: 'image/jpeg',
+      fileSizeBytes: 51_200,
+      uploadedBy: SYNTHETIC_USER.id,
+      createdAt: '2026-11-26T08:00:00Z',
+    });
+
+    const callOrder: string[] = [];
+    const rig = createInMemoryPatientFileRepository([initialFile]);
+    const originalUpload = rig.uploadPatientFile.getMockImplementation()!;
+    const originalArchive = rig.archivePatientFile.getMockImplementation()!;
+
+    rig.uploadPatientFile.mockImplementation(async (params) => {
+      callOrder.push('upload');
+      return originalUpload(params);
+    });
+    rig.archivePatientFile.mockImplementation(async (fileId) => {
+      callOrder.push('archive');
+      return originalArchive(fileId);
+    });
+
+    renderPatientChartWithFiles({ patientFileRepository: rig.repository });
+
+    expect(await screen.findByText('old-intraoral.jpg')).toBeInTheDocument();
+
+    const replaceInput = screen.getByLabelText(
+      en.patients.files.replace.inputAria.replace('{name}', 'old-intraoral.jpg'),
+    );
+
+    // 7a. Failed replacement upload -> archivePatientFile is NOT called and old file stays visible
+    rig.uploadPatientFile.mockRejectedValueOnce(new Error('Upload timeout'));
+    const failedReplacement = new File(['bad-attempt'], 'replacement-fail.jpg', {
+      type: 'image/jpeg',
+    });
+    fireEvent.change(replaceInput, { target: { files: [failedReplacement] } });
+
+    expect(
+      await screen.findByText(en.patients.files.replace.errorTitle),
+    ).toBeInTheDocument();
+    expect(rig.archivePatientFile).not.toHaveBeenCalled();
+    expect(screen.getByText('old-intraoral.jpg')).toBeInTheDocument();
+
+    // 7b. Successful replacement -> uploads first, then archives previous file
+    callOrder.length = 0;
+    const validReplacement = new File(['new-sharp-photo'], 'new-intraoral.webp', {
+      type: 'image/webp',
+    });
+    fireEvent.change(replaceInput, { target: { files: [validReplacement] } });
+
+    await waitFor(() => {
+      expect(callOrder).toEqual(['upload', 'archive']);
+    });
+    expect(rig.archivePatientFile).toHaveBeenCalledWith(initialFile.id);
+    expect(await screen.findByText('new-intraoral.webp')).toBeInTheDocument();
+    expect(screen.queryByText('old-intraoral.jpg')).not.toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      en.patients.files.replace.successTitle,
+    );
+  });
+
+  it('8. Shows "Delete upload mistake" ONLY for uploader own file within 15 min, hides for > 15 min or other colleague, and calls purgeMistakenUpload on confirmation (T-06b)', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm');
+
+    const nowMs = Date.now();
+    const recentOwnFile: PatientFileRecord = Object.freeze({
+      id: '88888888-8888-4888-8888-000000000001',
+      clinicId: SYNTHETIC_CLINIC.id,
+      patientId: SYNTHETIC_PATIENT.id,
+      appointmentId: null,
+      storagePath: `${SYNTHETIC_CLINIC.id}/${SYNTHETIC_PATIENT.id}/88888888-8888-4888-8888-000000000001.jpg`,
+      fileName: 'mistake-recent-own.jpg',
+      mimeType: 'image/jpeg',
+      fileSizeBytes: 12_000,
+      uploadedBy: SYNTHETIC_USER.id,
+      createdAt: new Date(nowMs - 2 * 60 * 1000).toISOString(),
+    });
+
+    const oldOwnFile: PatientFileRecord = Object.freeze({
+      id: '88888888-8888-4888-8888-000000000002',
+      clinicId: SYNTHETIC_CLINIC.id,
+      patientId: SYNTHETIC_PATIENT.id,
+      appointmentId: null,
+      storagePath: `${SYNTHETIC_CLINIC.id}/${SYNTHETIC_PATIENT.id}/88888888-8888-4888-8888-000000000002.jpg`,
+      fileName: 'old-own-file.jpg',
+      mimeType: 'image/jpeg',
+      fileSizeBytes: 12_000,
+      uploadedBy: SYNTHETIC_USER.id,
+      createdAt: new Date(nowMs - 20 * 60 * 1000).toISOString(),
+    });
+
+    const recentColleagueFile: PatientFileRecord = Object.freeze({
+      id: '88888888-8888-4888-8888-000000000003',
+      clinicId: SYNTHETIC_CLINIC.id,
+      patientId: SYNTHETIC_PATIENT.id,
+      appointmentId: null,
+      storagePath: `${SYNTHETIC_CLINIC.id}/${SYNTHETIC_PATIENT.id}/88888888-8888-4888-8888-000000000003.jpg`,
+      fileName: 'recent-colleague-file.jpg',
+      mimeType: 'image/jpeg',
+      fileSizeBytes: 12_000,
+      uploadedBy: '99999999-9999-4999-8999-999999999999',
+      createdAt: new Date(nowMs - 1 * 60 * 1000).toISOString(),
+    });
+
+    const { purgeMistakenUpload } = renderPatientChartWithFiles({
+      role: 'receptionist',
+      seedFiles: [recentOwnFile, oldOwnFile, recentColleagueFile],
+    });
+
+    expect(
+      await screen.findByText('mistake-recent-own.jpg'),
+    ).toBeInTheDocument();
+
+    // Only ONE "Delete upload mistake" button rendered across all 3 cards (strictly on recentOwnFile)
+    const selfPurgeButtons = screen.getAllByRole('button', {
+      name: en.patients.files.selfPurge.button,
+    });
+    expect(selfPurgeButtons).toHaveLength(1);
+
+    const recentCard = screen
+      .getByText('mistake-recent-own.jpg')
+      .closest('article')!;
+    const oldCard = screen.getByText('old-own-file.jpg').closest('article')!;
+    const colleagueCard = screen
+      .getByText('recent-colleague-file.jpg')
+      .closest('article')!;
+
+    expect(
+      within(oldCard).queryByRole('button', {
+        name: en.patients.files.selfPurge.button,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(colleagueCard).queryByRole('button', {
+        name: en.patients.files.selfPurge.button,
+      }),
+    ).not.toBeInTheDocument();
+
+    // Click and confirm inline (no window.confirm)
+    await user.click(
+      within(recentCard).getByRole('button', {
+        name: en.patients.files.selfPurge.button,
+      }),
+    );
+    expect(purgeMistakenUpload).not.toHaveBeenCalled();
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    const confirmRegion = within(recentCard).getByRole('region', {
+      name: en.patients.files.selfPurge.confirmTitle,
+    });
+    await user.click(
+      within(confirmRegion).getByRole('button', {
+        name: en.patients.files.selfPurge.confirmButton,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(purgeMistakenUpload).toHaveBeenCalledWith(
+        recentOwnFile.id,
+        recentOwnFile.storagePath,
+      );
+    });
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText('mistake-recent-own.jpg'),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      en.patients.files.selfPurge.successTitle,
+    );
+
+    confirmSpy.mockRestore();
+  });
+
+  it('9. Allows admin to open Archived files tab, restore one file, and permanently purge another with explicit confirmation; hides Archived tab from dentist (T-06b)', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm');
+
+    const archivedToRestore: ArchivedPatientFileRecord = Object.freeze({
+      id: '99999999-9999-4999-8999-000000000001',
+      clinicId: SYNTHETIC_CLINIC.id,
+      patientId: SYNTHETIC_PATIENT.id,
+      appointmentId: null,
+      storagePath: `${SYNTHETIC_CLINIC.id}/${SYNTHETIC_PATIENT.id}/99999999-9999-4999-8999-000000000001.png`,
+      fileName: 'archived-restore.png',
+      mimeType: 'image/png',
+      fileSizeBytes: 64_000,
+      uploadedBy: SYNTHETIC_USER.id,
+      createdAt: '2026-11-25T10:00:00Z',
+      deletedAt: '2026-11-26T10:00:00Z',
+    });
+
+    const archivedToPurge: ArchivedPatientFileRecord = Object.freeze({
+      id: '99999999-9999-4999-8999-000000000002',
+      clinicId: SYNTHETIC_CLINIC.id,
+      patientId: SYNTHETIC_PATIENT.id,
+      appointmentId: null,
+      storagePath: `${SYNTHETIC_CLINIC.id}/${SYNTHETIC_PATIENT.id}/99999999-9999-4999-8999-000000000002.pdf`,
+      fileName: 'archived-purge.pdf',
+      mimeType: 'application/pdf',
+      fileSizeBytes: 128_000,
+      uploadedBy: SYNTHETIC_USER.id,
+      createdAt: '2026-11-25T11:00:00Z',
+      deletedAt: '2026-11-26T11:00:00Z',
+    });
+
+    // Dentist does NOT see Archived tab
+    const dentistView = renderPatientChartWithFiles({
+      role: 'dentist',
+      seedFiles: [],
+      seedArchivedFiles: [archivedToRestore, archivedToPurge],
+    });
+    expect(
+      await dentistView.findByText(en.patients.files.emptyTitle),
+    ).toBeInTheDocument();
+    expect(
+      dentistView.queryByRole('tab', { name: en.patients.files.tabs.archived }),
+    ).not.toBeInTheDocument();
+    dentistView.unmount();
+
+    // Admin sees Archived tab, restores archivedToRestore, and permanently deletes archivedToPurge
+    const { restorePatientFile, purgeArchivedPatientFile } =
+      renderPatientChartWithFiles({
+        role: 'admin',
+        seedFiles: [],
+        seedArchivedFiles: [archivedToRestore, archivedToPurge],
+      });
+
+    const archivedTab = await screen.findByRole('tab', {
+      name: en.patients.files.tabs.archived,
+    });
+    await user.click(archivedTab);
+
+    expect(
+      await screen.findByText('archived-restore.png'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('archived-purge.pdf')).toBeInTheDocument();
+
+    // 9a. Restore archivedToRestore
+    const restoreCard = screen
+      .getByText('archived-restore.png')
+      .closest('article')!;
+    await user.click(
+      within(restoreCard).getByRole('button', {
+        name: en.patients.files.archived.restoreButton,
+      }),
+    );
+    expect(restorePatientFile).not.toHaveBeenCalled();
+
+    const restoreConfirm = within(restoreCard).getByRole('region', {
+      name: en.patients.files.archived.restoreConfirm.title,
+    });
+    await user.click(
+      within(restoreConfirm).getByRole('button', {
+        name: en.patients.files.archived.restoreConfirm.confirmButton,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(restorePatientFile).toHaveBeenCalledWith(archivedToRestore.id);
+    });
+    expect(
+      screen.queryByText('archived-restore.png'),
+    ).not.toBeInTheDocument();
+
+    // 9b. Permanently purge archivedToPurge
+    const purgeCard = screen
+      .getByText('archived-purge.pdf')
+      .closest('article')!;
+    await user.click(
+      within(purgeCard).getByRole('button', {
+        name: en.patients.files.archived.purgeButton,
+      }),
+    );
+    expect(purgeArchivedPatientFile).not.toHaveBeenCalled();
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    const purgeConfirm = within(purgeCard).getByRole('region', {
+      name: en.patients.files.archived.purgeConfirm.title,
+    });
+    await user.click(
+      within(purgeConfirm).getByRole('button', {
+        name: en.patients.files.archived.purgeConfirm.confirmButton,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(purgeArchivedPatientFile).toHaveBeenCalledWith(
+        archivedToPurge.id,
+        archivedToPurge.storagePath,
+      );
+    });
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(en.patients.files.archived.emptyTitle),
+    ).toBeInTheDocument();
+
+    // Switch back to Active tab -> restored file is active again
+    await user.click(
+      screen.getByRole('tab', { name: en.patients.files.tabs.active }),
+    );
+    expect(
+      await screen.findByText('archived-restore.png'),
+    ).toBeInTheDocument();
+
+    confirmSpy.mockRestore();
   });
 });

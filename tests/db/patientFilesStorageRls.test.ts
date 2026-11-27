@@ -531,12 +531,9 @@ describe('T-06 Patient clinical files, private Storage bucket, multi-clinic RLS,
     );
     expect(archiveRes.rowCount).toBe(1);
 
-    // Immediately invisible in SELECT for all roles in Clinic A
-    for (const userId of [
-      fixtures.adminA,
-      fixtures.dentistA,
-      fixtures.receptionistA,
-    ]) {
+    // Immediately invisible in SELECT for non-admin roles (dentistA and receptionistA),
+    // while adminA can inspect archived rows for controlled restore/purge (T-06b)
+    for (const userId of [fixtures.dentistA, fixtures.receptionistA]) {
       const selectAfter = await db.runAsRole(
         { role: 'authenticated', userId },
         (tx) =>
@@ -547,18 +544,31 @@ describe('T-06 Patient clinical files, private Storage bucket, multi-clinic RLS,
       expect(selectAfter.rows).toHaveLength(0);
     }
 
-    // Reactivation / subsequent UPDATE affects 0 rows
-    const reactivateAttempt = await db.runAsRole(
-      { role: 'authenticated', userId: fixtures.adminA, commit: true },
+    const adminArchivedSelect = await db.runAsRole(
+      { role: 'authenticated', userId: fixtures.adminA },
       (tx) =>
-        tx.query(
-          `UPDATE public.patient_files SET deleted_at = NULL WHERE id = $1`,
+        tx.query<{ id: string; deleted_at: string | null }>(
+          `SELECT id::text, deleted_at::text FROM public.patient_files WHERE id = $1`,
           [createdFile.id],
         ),
     );
-    expect(reactivateAttempt.rowCount).toBe(0);
+    expect(adminArchivedSelect.rows).toHaveLength(1);
+    expect(adminArchivedSelect.rows[0]?.deleted_at).not.toBeNull();
 
-    // Anti-spoofing: direct transition call fails with 42501 & GUC spoof exposes 0 rows
+    // Non-admin reactivation attempt affects 0 rows
+    for (const userId of [fixtures.dentistA, fixtures.receptionistA]) {
+      const reactivateAttempt = await db.runAsRole(
+        { role: 'authenticated', userId, commit: true },
+        (tx) =>
+          tx.query(
+            `UPDATE public.patient_files SET deleted_at = NULL WHERE id = $1`,
+            [createdFile.id],
+          ),
+      );
+      expect(reactivateAttempt.rowCount).toBe(0);
+    }
+
+    // Anti-spoofing: direct transition call fails with 42501 & GUC spoof exposes 0 rows to non-admins
     await expectPgError(
       () =>
         db.runAsRole({ role: 'authenticated', userId: fixtures.adminA }, (tx) =>
@@ -570,18 +580,20 @@ describe('T-06 Patient clinical files, private Storage bucket, multi-clinic RLS,
       '42501',
     );
 
-    const gucSpoof = await db.runAsRole(
-      { role: 'authenticated', userId: fixtures.adminA },
-      async (tx) => {
-        await tx.query(
-          `SELECT set_config('dentalcare.archiving_patient_file_active', 'on', true)`,
-        );
-        return tx.query(`SELECT id FROM public.patient_files WHERE id = $1`, [
-          createdFile.id,
-        ]);
-      },
-    );
-    expect(gucSpoof.rows).toHaveLength(0);
+    for (const userId of [fixtures.dentistA, fixtures.receptionistA]) {
+      const gucSpoof = await db.runAsRole(
+        { role: 'authenticated', userId },
+        async (tx) => {
+          await tx.query(
+            `SELECT set_config('dentalcare.archiving_patient_file_active', 'on', true)`,
+          );
+          return tx.query(`SELECT id FROM public.patient_files WHERE id = $1`, [
+            createdFile.id,
+          ]);
+        },
+      );
+      expect(gucSpoof.rows).toHaveLength(0);
+    }
 
     // Atomic audit_log entry verified as adminA: metadata_json = '{}', ZERO PII / file_name
     const auditRes = await db.runAsRole(
@@ -800,7 +812,8 @@ describe('T-06 Patient clinical files, private Storage bucket, multi-clinic RLS,
     );
     expect(deleteStorageRes.rowCount).toBe(0);
 
-    // 5e. Archiving the patient_files row immediately revokes SELECT on storage.objects
+    // 5e. Archiving the patient_files row immediately revokes SELECT on storage.objects for non-admin roles
+    // (adminA retains SELECT on non-purged archived objects to preview or purge via Storage API — T-06b)
     await db.runAsRole(
       { role: 'authenticated', userId: fixtures.dentistA, commit: true },
       (tx) =>
@@ -810,15 +823,17 @@ describe('T-06 Patient clinical files, private Storage bucket, multi-clinic RLS,
         ),
     );
 
-    const afterFileArchiveSelect = await db.runAsRole(
-      { role: 'authenticated', userId: fixtures.adminA },
-      (tx) =>
-        tx.query(
-          `SELECT name FROM storage.objects WHERE bucket_id = 'patient-files' AND name = $1`,
-          [objectNameA],
-        ),
-    );
-    expect(afterFileArchiveSelect.rows).toHaveLength(0);
+    for (const userId of [fixtures.dentistA, fixtures.receptionistA]) {
+      const afterFileArchiveSelect = await db.runAsRole(
+        { role: 'authenticated', userId },
+        (tx) =>
+          tx.query(
+            `SELECT name FROM storage.objects WHERE bucket_id = 'patient-files' AND name = $1`,
+            [objectNameA],
+          ),
+      );
+      expect(afterFileArchiveSelect.rows).toHaveLength(0);
+    }
 
     // 5f. Archiving the parent patient also immediately revokes SELECT on storage.objects
     const tempPatientId = randomUUID().toLowerCase();

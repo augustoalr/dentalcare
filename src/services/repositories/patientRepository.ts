@@ -1,4 +1,8 @@
-import type { PatientInput, PatientRecord } from '@/domain/patients';
+import type {
+  ArchivedPatientRecord,
+  PatientInput,
+  PatientRecord,
+} from '@/domain/patients';
 import type { PatientRow } from '@/services/supabase/database.types';
 import {
   getSupabaseClient,
@@ -9,15 +13,19 @@ const SAFE_ERROR_CODE_PATTERN = /^[A-Z0-9_]{1,32}$/i;
 
 /**
  * Agnostic repository contract for clinic patient records.
- * Enforces logical archiving (`deleted_at`) and strict separation of concerns
- * so UI and domain layers never depend directly on Supabase.
+ * Enforces logical archiving (`deleted_at`), admin-only restoration, and strict
+ * separation of concerns so UI and domain layers never depend directly on Supabase.
  */
 export interface IPatientRepository {
   listPatients(clinicId: string): Promise<readonly PatientRecord[]>;
+  listArchivedPatients(
+    clinicId: string,
+  ): Promise<readonly ArchivedPatientRecord[]>;
   getPatientById(patientId: string): Promise<PatientRecord | null>;
   createPatient(clinicId: string, input: PatientInput): Promise<PatientRecord>;
   updatePatient(patientId: string, input: PatientInput): Promise<PatientRecord>;
   archivePatient(patientId: string): Promise<void>;
+  restorePatient(patientId: string): Promise<void>;
 }
 
 function mapPatientRow(row: PatientRow): PatientRecord {
@@ -32,6 +40,15 @@ function mapPatientRow(row: PatientRow): PatientRecord {
     generalNotes: row.general_notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  });
+}
+
+function mapArchivedPatientRow(
+  row: PatientRow & { readonly deleted_at: string },
+): ArchivedPatientRecord {
+  return Object.freeze({
+    ...mapPatientRow(row),
+    deletedAt: row.deleted_at,
   });
 }
 
@@ -83,6 +100,36 @@ export class SupabasePatientRepository implements IPatientRepository {
     }
 
     return Object.freeze((data ?? []).map(mapPatientRow));
+  }
+
+  async listArchivedPatients(
+    clinicId: string,
+  ): Promise<readonly ArchivedPatientRecord[]> {
+    const normalizedClinicId = clinicId.trim();
+    if (normalizedClinicId.length === 0) {
+      throw new Error('Cannot list archived patients without a valid clinicId');
+    }
+
+    const { data, error } = await this.client
+      .from('patients')
+      .select('*')
+      .eq('clinic_id', normalizedClinicId)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+
+    if (error) {
+      throw createSafePatientRepositoryError(
+        'Failed to list archived clinic patients',
+        error,
+      );
+    }
+
+    const archivedRows = (data ?? []).filter(
+      (row): row is PatientRow & { readonly deleted_at: string } =>
+        typeof row.deleted_at === 'string' && row.deleted_at.length > 0,
+    );
+
+    return Object.freeze(archivedRows.map(mapArchivedPatientRow));
   }
 
   async getPatientById(patientId: string): Promise<PatientRecord | null> {
@@ -207,6 +254,28 @@ export class SupabasePatientRepository implements IPatientRepository {
     if (error) {
       throw createSafePatientRepositoryError(
         'Failed to archive patient record',
+        error,
+      );
+    }
+  }
+
+  async restorePatient(patientId: string): Promise<void> {
+    const normalizedPatientId = patientId.trim();
+    if (normalizedPatientId.length === 0) {
+      throw new Error('Cannot restore patient without a valid patientId');
+    }
+
+    // IMPORTANT: Admin-only restoration sends ONLY `{ deleted_at: null }`
+    // without chaining `.select()`, matching `private.guard_patient_update()`.
+    const { error } = await this.client
+      .from('patients')
+      .update({ deleted_at: null })
+      .eq('id', normalizedPatientId)
+      .not('deleted_at', 'is', null);
+
+    if (error) {
+      throw createSafePatientRepositoryError(
+        'Failed to restore patient record',
         error,
       );
     }

@@ -3,6 +3,7 @@ import {
   PATIENT_FILES_BUCKET_ID,
   buildPatientFileStoragePath,
   validatePatientFileUpload,
+  type ArchivedPatientFileRecord,
   type PatientFileRecord,
 } from '@/domain/patientFiles';
 import type { PatientFileRow } from '@/services/supabase/database.types';
@@ -23,14 +24,19 @@ export interface UploadPatientFileParams {
 /**
  * Agnostic repository contract for private clinical attachments (intraoral photos
  * and synthetic X-rays). Enforces private Storage uploads (`upsert: false`),
- * short-lived signed URLs (`createSignedUrl`, never public URLs), and audited
- * logical archiving (`deleted_at`, never physical `DELETE` or `storage.remove`).
+ * short-lived signed URLs (`createSignedUrl`, never public URLs), audited
+ * logical archiving (`deleted_at`), admin restoration, and controlled space purge
+ * (`storage.remove` + `purged_at`, never physical `DELETE` on `patient_files`).
  */
 export interface IPatientFileRepository {
   listPatientFiles(
     clinicId: string,
     patientId: string,
   ): Promise<readonly PatientFileRecord[]>;
+  listArchivedPatientFiles(
+    clinicId: string,
+    patientId: string,
+  ): Promise<readonly ArchivedPatientFileRecord[]>;
   uploadPatientFile(
     params: UploadPatientFileParams,
   ): Promise<PatientFileRecord>;
@@ -39,6 +45,9 @@ export interface IPatientFileRepository {
     expiresInSeconds?: number,
   ): Promise<string>;
   archivePatientFile(fileId: string): Promise<void>;
+  restorePatientFile(fileId: string): Promise<void>;
+  purgeArchivedPatientFile(fileId: string, storagePath: string): Promise<void>;
+  purgeMistakenUpload(fileId: string, storagePath: string): Promise<void>;
 }
 
 function mapPatientFileRow(row: PatientFileRow): PatientFileRecord {
@@ -53,6 +62,15 @@ function mapPatientFileRow(row: PatientFileRow): PatientFileRecord {
     fileSizeBytes: Number(row.file_size_bytes),
     uploadedBy: row.uploaded_by,
     createdAt: row.created_at,
+  });
+}
+
+function mapArchivedPatientFileRow(
+  row: PatientFileRow & { readonly deleted_at: string },
+): ArchivedPatientFileRecord {
+  return Object.freeze({
+    ...mapPatientFileRow(row),
+    deletedAt: row.deleted_at,
   });
 }
 
@@ -128,6 +146,7 @@ export class SupabasePatientFileRepository implements IPatientFileRepository {
       .eq('clinic_id', normalizedClinicId)
       .eq('patient_id', normalizedPatientId)
       .is('deleted_at', null)
+      .is('purged_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -138,6 +157,42 @@ export class SupabasePatientFileRepository implements IPatientFileRepository {
     }
 
     return Object.freeze((data ?? []).map(mapPatientFileRow));
+  }
+
+  async listArchivedPatientFiles(
+    clinicId: string,
+    patientId: string,
+  ): Promise<readonly ArchivedPatientFileRecord[]> {
+    const normalizedClinicId = clinicId.trim();
+    const normalizedPatientId = patientId.trim();
+    if (normalizedClinicId.length === 0 || normalizedPatientId.length === 0) {
+      throw new Error(
+        'Cannot list archived clinical files without valid clinicId and patientId',
+      );
+    }
+
+    const { data, error } = await this.client
+      .from('patient_files')
+      .select('*')
+      .eq('clinic_id', normalizedClinicId)
+      .eq('patient_id', normalizedPatientId)
+      .not('deleted_at', 'is', null)
+      .is('purged_at', null)
+      .order('deleted_at', { ascending: false });
+
+    if (error) {
+      throw createSafePatientFileRepositoryError(
+        'Failed to list archived clinical files',
+        error,
+      );
+    }
+
+    const archivedRows = (data ?? []).filter(
+      (row): row is PatientFileRow & { readonly deleted_at: string } =>
+        typeof row.deleted_at === 'string' && row.deleted_at.length > 0,
+    );
+
+    return Object.freeze(archivedRows.map(mapArchivedPatientFileRow));
   }
 
   async uploadPatientFile(
@@ -269,6 +324,116 @@ export class SupabasePatientFileRepository implements IPatientFileRepository {
       throw createSafePatientFileRepositoryError(
         'Failed to archive clinical file',
         error,
+      );
+    }
+  }
+
+  async restorePatientFile(fileId: string): Promise<void> {
+    const normalizedFileId = fileId.trim();
+    if (normalizedFileId.length === 0) {
+      throw new Error('Cannot restore clinical file without a valid fileId');
+    }
+
+    // IMPORTANT: Admin-only restoration sends ONLY `{ deleted_at: null }`
+    // without chaining `.select()`, matching `private.guard_patient_file_update()`.
+    const { error } = await this.client
+      .from('patient_files')
+      .update({ deleted_at: null })
+      .eq('id', normalizedFileId)
+      .not('deleted_at', 'is', null)
+      .is('purged_at', null);
+
+    if (error) {
+      throw createSafePatientFileRepositoryError(
+        'Failed to restore clinical file',
+        error,
+      );
+    }
+  }
+
+  async purgeArchivedPatientFile(
+    fileId: string,
+    storagePath: string,
+  ): Promise<void> {
+    const normalizedFileId = fileId.trim();
+    const normalizedStoragePath = storagePath.trim();
+    if (normalizedFileId.length === 0 || normalizedStoragePath.length === 0) {
+      throw new Error(
+        'Cannot purge archived clinical file without valid fileId and storagePath',
+      );
+    }
+
+    // 1. Delete binary from Supabase Storage API FIRST and guard against
+    // silent RLS denial (`{ data: [], error: null }`, B-03).
+    const { data: removedData, error: removeError } = await this.client.storage
+      .from(PATIENT_FILES_BUCKET_ID)
+      .remove([normalizedStoragePath]);
+
+    if (removeError || !removedData || removedData.length === 0) {
+      throw createSafePatientFileRepositoryError(
+        'Failed to purge archived clinical file from private storage',
+        removeError as { code?: string; statusCode?: string | number } | null,
+      );
+    }
+
+    // 2. Only once Storage confirmed removal, mark `purged_at` while keeping
+    // the historical audit row intact (never physical `.delete()`).
+    const { error: updateError } = await this.client
+      .from('patient_files')
+      .update({ purged_at: new Date().toISOString() })
+      .eq('id', normalizedFileId)
+      .eq('storage_path', normalizedStoragePath)
+      .not('deleted_at', 'is', null)
+      .is('purged_at', null);
+
+    if (updateError) {
+      throw createSafePatientFileRepositoryError(
+        'Failed to mark archived clinical file as purged',
+        updateError,
+      );
+    }
+  }
+
+  async purgeMistakenUpload(
+    fileId: string,
+    storagePath: string,
+  ): Promise<void> {
+    const normalizedFileId = fileId.trim();
+    const normalizedStoragePath = storagePath.trim();
+    if (normalizedFileId.length === 0 || normalizedStoragePath.length === 0) {
+      throw new Error(
+        'Cannot purge recent clinical file without valid fileId and storagePath',
+      );
+    }
+
+    // 1. Delete binary from Supabase Storage API FIRST (allowed by RLS only for
+    // the original uploader within 15 minutes) and guard against silent denial (B-03).
+    const { data: removedData, error: removeError } = await this.client.storage
+      .from(PATIENT_FILES_BUCKET_ID)
+      .remove([normalizedStoragePath]);
+
+    if (removeError || !removedData || removedData.length === 0) {
+      throw createSafePatientFileRepositoryError(
+        'Failed to purge recent clinical file from private storage',
+        removeError as { code?: string; statusCode?: string | number } | null,
+      );
+    }
+
+    // 2. Only once Storage confirmed removal, mark `deleted_at` & `purged_at`
+    // without `.select()` and without physical `.delete()`.
+    const nowIso = new Date().toISOString();
+    const { error: updateError } = await this.client
+      .from('patient_files')
+      .update({ deleted_at: nowIso, purged_at: nowIso })
+      .eq('id', normalizedFileId)
+      .eq('storage_path', normalizedStoragePath)
+      .is('deleted_at', null)
+      .is('purged_at', null);
+
+    if (updateError) {
+      throw createSafePatientFileRepositoryError(
+        'Failed to mark recent clinical file as purged',
+        updateError,
       );
     }
   }

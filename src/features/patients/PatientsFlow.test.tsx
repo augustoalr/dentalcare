@@ -5,7 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '@/App';
 import type { AuthSessionUser } from '@/domain/auth';
 import type { SupportedLocale } from '@/domain/locale';
-import type { PatientInput, PatientRecord } from '@/domain/patients';
+import type {
+  ArchivedPatientRecord,
+  PatientInput,
+  PatientRecord,
+} from '@/domain/patients';
 import { AuthProvider } from '@/features/auth/AuthContext';
 import { I18nProvider } from '@/i18n';
 import en from '@/i18n/locales/en.json';
@@ -17,6 +21,7 @@ import type {
   UserProfile,
 } from '@/services/repositories/clinicAccessRepository';
 import type { IPatientRepository } from '@/services/repositories/patientRepository';
+import type { ClinicRole } from '@/services/supabase/database.types';
 import { InMemoryStorageAdapter } from '@/services/storage/storageAdapter';
 
 const SYNTHETIC_USER: AuthSessionUser = Object.freeze({
@@ -37,18 +42,25 @@ const SYNTHETIC_CLINIC: ClinicSummary = Object.freeze({
 
 function createSyntheticProfile(
   preferredLocale: SupportedLocale = 'en',
+  role: ClinicRole = 'dentist',
 ): UserProfile {
   return Object.freeze({
     id: SYNTHETIC_USER.id,
     clinicId: SYNTHETIC_CLINIC.id,
-    fullName: 'Dr. Nur Synthetic Dentist',
-    role: 'dentist',
+    fullName:
+      role === 'admin'
+        ? 'Admin Alpha Synthetic'
+        : 'Dr. Nur Synthetic Dentist',
+    role,
     preferredLocale,
     isActive: true,
   });
 }
 
-function createAuthAndClinicRig(preferredLocale: SupportedLocale = 'en') {
+function createAuthAndClinicRig(
+  preferredLocale: SupportedLocale = 'en',
+  role: ClinicRole = 'dentist',
+) {
   const authService: IAuthService = {
     getCurrentSession: vi.fn().mockResolvedValue(SYNTHETIC_USER),
     signInWithPassword: vi.fn().mockResolvedValue(SYNTHETIC_USER),
@@ -60,7 +72,7 @@ function createAuthAndClinicRig(preferredLocale: SupportedLocale = 'en') {
     getActiveClinic: vi.fn().mockResolvedValue(SYNTHETIC_CLINIC),
     getCurrentProfile: vi
       .fn()
-      .mockResolvedValue(createSyntheticProfile(preferredLocale)),
+      .mockResolvedValue(createSyntheticProfile(preferredLocale, role)),
     updatePreferredLocale: vi.fn().mockResolvedValue(undefined),
     updateClinicSettings: vi.fn(),
     appendAuditLog: vi.fn().mockResolvedValue(undefined),
@@ -71,8 +83,10 @@ function createAuthAndClinicRig(preferredLocale: SupportedLocale = 'en') {
 
 function createInMemoryPatientRepository(
   seedRecords: readonly PatientRecord[] = [],
+  seedArchivedRecords: readonly ArchivedPatientRecord[] = [],
 ) {
   let store: PatientRecord[] = [...seedRecords];
+  let archivedStore: ArchivedPatientRecord[] = [...seedArchivedRecords];
   let seq = 1;
 
   const listPatients = vi
@@ -83,6 +97,12 @@ function createInMemoryPatientRepository(
           .filter((p) => p.clinicId === clinicId)
           .sort((a, b) => a.fullName.localeCompare(b.fullName)),
       ),
+    );
+
+  const listArchivedPatients = vi
+    .fn<IPatientRepository['listArchivedPatients']>()
+    .mockImplementation(async (clinicId: string) =>
+      Object.freeze(archivedStore.filter((p) => p.clinicId === clinicId)),
     );
 
   const getPatientById = vi
@@ -134,36 +154,68 @@ function createInMemoryPatientRepository(
   const archivePatient = vi
     .fn<IPatientRepository['archivePatient']>()
     .mockImplementation(async (patientId: string) => {
+      const existing = store.find((p) => p.id === patientId);
       store = store.filter((p) => p.id !== patientId);
+      if (existing) {
+        archivedStore = [
+          Object.freeze({ ...existing, deletedAt: '2026-11-27T08:00:00Z' }),
+          ...archivedStore,
+        ];
+      }
+    });
+
+  const restorePatient = vi
+    .fn<IPatientRepository['restorePatient']>()
+    .mockImplementation(async (patientId: string) => {
+      const existing = archivedStore.find((p) => p.id === patientId);
+      archivedStore = archivedStore.filter((p) => p.id !== patientId);
+      if (existing) {
+        const { deletedAt: _removed, ...activeRecord } = existing;
+        void _removed;
+        store = [...store, Object.freeze(activeRecord)];
+      }
     });
 
   const patientRepository: IPatientRepository = {
     listPatients,
+    listArchivedPatients,
     getPatientById,
     createPatient,
     updatePatient,
     archivePatient,
+    restorePatient,
   };
 
   return {
     patientRepository,
     listPatients,
+    listArchivedPatients,
     getPatientById,
     createPatient,
     updatePatient,
     archivePatient,
+    restorePatient,
   };
 }
 
 function renderPatientsApp(options?: {
   initialPath?: string;
   initialLocale?: SupportedLocale;
+  role?: ClinicRole;
   seedPatients?: readonly PatientRecord[];
+  seedArchivedPatients?: readonly ArchivedPatientRecord[];
   patientRepository?: IPatientRepository;
 }) {
   const locale = options?.initialLocale ?? 'en';
-  const { authService, clinicRepository } = createAuthAndClinicRig(locale);
-  const repoRig = createInMemoryPatientRepository(options?.seedPatients ?? []);
+  const role = options?.role ?? 'dentist';
+  const { authService, clinicRepository } = createAuthAndClinicRig(
+    locale,
+    role,
+  );
+  const repoRig = createInMemoryPatientRepository(
+    options?.seedPatients ?? [],
+    options?.seedArchivedPatients ?? [],
+  );
   const activePatientRepo =
     options?.patientRepository ?? repoRig.patientRepository;
 
@@ -580,5 +632,145 @@ describe('T-05 Patients UI & clinical alert flow', () => {
     expect(
       await missingView.findByText(es.patients.detail.notFoundTitle),
     ).toBeInTheDocument();
+  });
+
+  it('6. Allows admin to inspect Archived tab and restore a patient with explicit confirmation (without window.confirm), while hiding Archived tab from dentist (T-06b)', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm');
+
+    const archivedPatient: ArchivedPatientRecord = Object.freeze({
+      id: 'pat-archived-1',
+      clinicId: SYNTHETIC_CLINIC.id,
+      fullName: 'Rashid Synthetic Archived Patient',
+      phone: '+971 50 777 8888',
+      email: 'rashid.archived@dentalcare.test',
+      dateOfBirth: '1988-02-10',
+      medicalAlerts: 'Latex sensitivity',
+      generalNotes: null,
+      createdAt: '2026-11-25T08:00:00Z',
+      updatedAt: '2026-11-26T08:00:00Z',
+      deletedAt: '2026-11-26T15:30:00Z',
+    });
+
+    // Dentist does NOT see the Archived tab
+    const dentistView = renderPatientsApp({
+      role: 'dentist',
+      seedPatients: [],
+      seedArchivedPatients: [archivedPatient],
+    });
+    expect(
+      await dentistView.findByText(en.patients.empty.noPatientsTitle),
+    ).toBeInTheDocument();
+    expect(
+      dentistView.queryByRole('tab', { name: en.patients.tabs.archived }),
+    ).not.toBeInTheDocument();
+    dentistView.unmount();
+
+    // Admin sees Active / Archived tabs, inspects archived patient, and restores with explicit UI confirmation
+    const { listArchivedPatients, restorePatient } = renderPatientsApp({
+      role: 'admin',
+      seedPatients: [],
+      seedArchivedPatients: [archivedPatient],
+    });
+
+    const archivedTab = await screen.findByRole('tab', {
+      name: en.patients.tabs.archived,
+    });
+    await user.click(archivedTab);
+
+    await waitFor(() => {
+      expect(listArchivedPatients).toHaveBeenCalledWith(SYNTHETIC_CLINIC.id);
+    });
+
+    expect(
+      await screen.findByText('Rashid Synthetic Archived Patient'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(en.patients.archived.statusHint)).toBeInTheDocument();
+    expect(
+      screen.getByText(en.patients.list.medicalAlertBadge),
+    ).toBeInTheDocument();
+
+    // Clicking Restore opens inline confirmation without calling repository yet
+    await user.click(
+      screen.getByRole('button', { name: en.patients.archived.restoreButton }),
+    );
+    expect(restorePatient).not.toHaveBeenCalled();
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    const confirmRegion = screen.getByRole('region', {
+      name: en.patients.archived.restoreConfirm.title,
+    });
+    await user.click(
+      within(confirmRegion).getByRole('button', {
+        name: en.patients.archived.restoreConfirm.confirmButton,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(restorePatient).toHaveBeenCalledWith('pat-archived-1');
+    });
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      en.patients.archived.restoreSuccessTitle,
+    );
+
+    // Switch back to Active tab -> restored patient is visible
+    await user.click(
+      screen.getByRole('tab', { name: en.patients.tabs.active }),
+    );
+    expect(
+      await screen.findByText('Rashid Synthetic Archived Patient'),
+    ).toBeInTheDocument();
+
+    confirmSpy.mockRestore();
+  });
+
+  it('7. Renders long patient names with mobile-responsive wrapping in PatientListCard (no truncate) and stacked header in PatientDetailPage (T-06b)', async () => {
+    const longMobileName =
+      'Dra. Alejandra Sintética de la Santísima Trinidad Villalobos y Mendoza';
+    const patient: PatientRecord = Object.freeze({
+      id: 'pat-mobile-1',
+      clinicId: SYNTHETIC_CLINIC.id,
+      fullName: longMobileName,
+      phone: '+34 600 111 222',
+      email: 'alejandra.mobile@clinica.test',
+      dateOfBirth: '1989-11-02',
+      medicalAlerts: null,
+      generalNotes: null,
+      createdAt: '2026-11-26T08:00:00Z',
+      updatedAt: '2026-11-26T08:00:00Z',
+    });
+
+    const listView = renderPatientsApp({
+      initialPath: '/patients',
+      seedPatients: [patient],
+    });
+
+    const nameInList = await listView.findByText(longMobileName);
+    expect(nameInList.className).not.toContain('truncate');
+    expect(nameInList.className).toContain('line-clamp-2');
+    expect(nameInList.className).toContain('break-words');
+    expect(nameInList.className).toContain('[overflow-wrap:anywhere]');
+    listView.unmount();
+
+    const detailView = renderPatientsApp({
+      initialPath: '/patients/pat-mobile-1',
+      seedPatients: [patient],
+    });
+
+    const detailHeading = await detailView.findByRole('heading', {
+      level: 1,
+      name: longMobileName,
+    });
+    expect(detailHeading.className).toContain('text-xl');
+    expect(detailHeading.className).toContain('sm:text-2xl');
+    expect(detailHeading.className).toContain('break-words');
+    expect(detailHeading.className).toContain('[overflow-wrap:anywhere]');
+
+    // Header wrapper stacks vertically on narrow phones and aligns horizontally on sm+
+    const headerWrapper = detailHeading.closest('.flex-col');
+    expect(headerWrapper).not.toBeNull();
+    expect(headerWrapper?.className).toContain('sm:flex-row');
   });
 });

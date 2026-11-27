@@ -204,6 +204,34 @@
     "closeFormButton": "Close form",
     "unconfiguredTitle": "Patient directory unavailable",
     "unconfiguredDescription": "Connect the public Supabase environment variables to load and manage clinic patients.",
+    "tabs": {
+      "ariaLabel": "Patient directory filter",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "archived": {
+      "countSingle": "1 archived patient",
+      "countPlural": "{count} archived patients",
+      "badge": "Archived",
+      "archivedOn": "Archived {date}",
+      "statusHint": "Archived — hidden from the schedule and active list",
+      "restoreButton": "Restore patient",
+      "emptyTitle": "No archived patients",
+      "emptyDescription": "Patients archived by your clinic will appear here so an administrator can review or restore them.",
+      "loadErrorTitle": "Could not load archived patients",
+      "loadErrorDescription": "We could not retrieve archived patient records right now. Please try again.",
+      "restoreSuccessTitle": "Patient restored",
+      "restoreSuccessDescription": "The patient is active again and visible in your clinic's directory.",
+      "restoreConfirm": {
+        "title": "Restore this archived patient?",
+        "description": "The patient will return to active lists and an anonymised restore event will be recorded in the audit log.",
+        "confirmButton": "Confirm restore",
+        "restoringButton": "Restoring…",
+        "cancelButton": "Keep archived",
+        "errorTitle": "Could not restore patient",
+        "errorDescription": "We could not restore this patient right now. Please try again."
+      }
+    },
     "search": {
       "label": "Search patients",
       "placeholder": "Search by name, phone, or email…",
@@ -347,6 +375,70 @@
         "confirmButton": "Confirm archive",
         "archivingButton": "Archiving…",
         "cancelButton": "Keep active"
+      },
+      "tabs": {
+        "ariaLabel": "Clinical files filter",
+        "active": "Active",
+        "archived": "Archived"
+      },
+      "optimization": {
+        "preserveOriginalLabel": "Keep original quality (recommended for X-rays)",
+        "preserveOriginalHint": "Large images (> 1 MB) are automatically optimized to save space. PDFs are never modified.",
+        "savedSummary": "Optimized from {original} to {final} before upload."
+      },
+      "replace": {
+        "button": "Replace",
+        "replacingButton": "Replacing…",
+        "inputAria": "Select replacement file for {name}",
+        "successTitle": "Clinical file replaced",
+        "successDescription": "The new file was uploaded safely and the previous version was archived.",
+        "errorTitle": "Could not replace clinical file",
+        "errorDescription": "The replacement upload failed, so the previous file was kept intact. Please try again.",
+        "archivePreviousErrorDescription": "The new file was uploaded, but the previous version could not be archived automatically. You can archive it manually."
+      },
+      "selfPurge": {
+        "button": "Delete upload mistake",
+        "successTitle": "Recent upload deleted",
+        "successDescription": "The mistaken file was removed from storage to free up space and recorded in the audit log.",
+        "confirmTitle": "Delete this recent upload?",
+        "confirmDescription": "Deletes this recently uploaded file and frees up storage space. This cannot be undone.",
+        "confirmButton": "Confirm delete",
+        "deletingButton": "Deleting…",
+        "cancelButton": "Cancel",
+        "errorTitle": "Could not delete recent upload",
+        "errorDescription": "The 15-minute correction window may have expired or a connection error occurred. You can archive it instead."
+      },
+      "archived": {
+        "badge": "Archived",
+        "archivedOn": "Archived {date}",
+        "emptyTitle": "No archived clinical files",
+        "emptyDescription": "Archived photos and synthetic X-rays for this patient will appear here so an administrator can restore them or free up storage space.",
+        "loadErrorTitle": "Could not load archived files",
+        "loadErrorDescription": "We could not retrieve archived clinical files right now. Please try again.",
+        "restoreButton": "Restore",
+        "restoreSuccessTitle": "Clinical file restored",
+        "restoreSuccessDescription": "The file is active again on this patient's chart.",
+        "restoreConfirm": {
+          "title": "Restore this clinical file?",
+          "description": "The file will become visible again in active clinical attachments and an anonymised restore event will be recorded in the audit log.",
+          "confirmButton": "Confirm restore",
+          "restoringButton": "Restoring…",
+          "cancelButton": "Keep archived",
+          "errorTitle": "Could not restore clinical file",
+          "errorDescription": "We could not restore this file right now. Please try again."
+        },
+        "purgeButton": "Delete permanently",
+        "purgeSuccessTitle": "File permanently deleted",
+        "purgeSuccessDescription": "The file was removed from storage to free up space while preserving the anonymised audit record.",
+        "purgeConfirm": {
+          "title": "Permanently delete from storage?",
+          "description": "Deletes the file from storage to free up space. This action cannot be undone.",
+          "confirmButton": "Delete permanently",
+          "purgingButton": "Deleting…",
+          "cancelButton": "Keep archived",
+          "errorTitle": "Could not delete file permanently",
+          "errorDescription": "The storage file could not be removed right now. Please try again."
+        }
       }
     }
   }

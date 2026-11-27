@@ -136,6 +136,7 @@ export type PatientFileRow = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  purged_at: string | null;
 };
 
 export type PatientFileInsert = {
@@ -151,11 +152,13 @@ export type PatientFileInsert = {
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;
+  purged_at?: string | null;
 };
 
 export type PatientFileUpdate = {
   updated_at?: string;
   deleted_at?: string | null;
+  purged_at?: string | null;
 };
 
 export type AuditLogRow = {
