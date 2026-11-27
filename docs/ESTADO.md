@@ -1,12 +1,12 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-26 15:28 GST por Manager (Inicio Coder T-06 tras APTO del Revisor en `4a7a97f`)
+Última actualización: 2026-11-27 06:24 GST por Manager (Cierre T-06 en `2e864a1` + decisión de producto sobre T-06b vs T-07)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-06` — Fotos Intraorales y Radiografías Sintéticas en Supabase Storage Privado (`[DELICADA]`, prompt `APTO` por el Revisor en `4a7a97f`, entregado al Coder `T-06 archivos-privados`)
-- Bloqueado por el humano: Ninguno (`dentalcare-dev` tiene migraciones `T-02`, `T-04` y `T-05` aplicadas + cuentas sintéticas listas)
-- Próxima tarea propuesta: `T-07` — Catálogo de Tratamientos (Precios en Céntimos, EN/ES) (`[DELICADA]`, tras fusionar `T-06`)
+- En curso: Ninguna (acabamos de fusionar `T-06` en `2e864a1`)
+- Bloqueado por el humano: Decisión de producto de Augusto tras probar `T-06` — elegir entre hacer ahora `T-06b` (arreglo móvil del nombre del paciente + vista "Archivados" con restauración para `admin` + optimización inteligente de imágenes) o seguir directo a `T-07` (Catálogo de tratamientos) y dejar `T-06b` para después
+- Próxima tarea propuesta: `T-06b` (mejora UX móvil + Archivados/Restaurar + optimización de imágenes) o `T-07` — Catálogo de Tratamientos (`[DELICADA]`), según decisión de Augusto
 
 ## Tabla de tareas
 
@@ -17,7 +17,7 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-03 Login + Shell + Idioma | T-03 login-shell | `t-03-login-shell` | — (en serie) | #10 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`64004d3`) | 2 (PR) / 1 (prompt) | 2 (en PR por Revisor: `signOut` local fallback y refs síncronos) | `[DELICADA]` Revisor `APROBADO` en `5f2e4942`; preview probado por Augusto: PASÓ |
 | T-04 Config clínica multi-país | T-04 config-clinica | `t-04-config-clinica` | — (en serie) | #13 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`4f29b67`) | 2 (PR, ajuste VE) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `8351db87`; preview en vivo contra `dentalcare-dev` + `audit_log`: PASÓ |
 | T-05 Pacientes + Alertas rojas | T-05 pacientes-alertas | `t-05-pacientes-alertas` | — (en serie) | #16 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`ad91f23`) | 1 (PR) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `d1bc7778`; preview en vivo + `patient.archived` sin PII en `dentalcare-dev`: PASÓ |
-| T-06 Archivos clínicos privados | T-06 archivos-privados | `t-06-archivos-privados` | — (en serie) | — | 🛠️ En curso | 2026-11-26 | | 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`) | `[DELICADA]` Prompt `APTO` por Revisor (`4a7a97f`), en manos del Coder |
+| T-06 Archivos clínicos privados | T-06 archivos-privados | `t-06-archivos-privados` | — (en serie) | #20 | ✅ Fusionada | 2026-11-26 | 2026-11-27 (`2e864a1`) | 1 (PR) / 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `0e2a5e23`; preview en vivo + bucket privado + `patient_file.archived` sin PII en `dentalcare-dev`: PASÓ |
 | T-07 Catálogo de tratamientos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-04 |
 | T-08 Agenda + Notas + Panel del día | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
 | T-09 Recordatorios WhatsApp (`wa.me`) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | Depende de T-08 |
@@ -34,13 +34,13 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - [x] Crear repo GitHub, subir archivos base y activar protección de `main` con check `"verify"`
 - [x] Abrir conversación nueva `"Manager"` en Fase E
 - [x] Previews automáticos de Vercel conectados y verificados en PR #3 (`T-01`), PR #10 (`T-03`) y PR #13 (`T-04`)
-- [x] Variables públicas de Supabase configuradas en Vercel + migraciones `T-02`/`T-04`/`T-05` y cuentas sintéticas (`admin`/`dentist`) aplicadas en `dentalcare-dev`
-- [ ] *(Opcional, producto)* Decidir si se añade una futura tarea pequeña para que solo el `admin` pueda ver y restaurar pacientes archivados (sugerencia de Augusto al probar `T-05`)
+- [x] Variables públicas de Supabase configuradas en Vercel + migraciones `T-02`/`T-04`/`T-05`/`T-06` (bucket privado `patient-files`) y cuentas sintéticas (`admin`/`dentist`) aplicadas en `dentalcare-dev`
+- [ ] *(Producto — decisión abierta)* Elegir si se ejecuta ahora `T-06b` (arreglo móvil del nombre del paciente + vista "Archivados" con restauración `admin` + reemplazo/optimización inteligente de imágenes) o si se avanza primero con `T-07`
 - [ ] *(Opcional, higiene)* Eliminar el proyecto duplicado en una de las dos cuentas de Vercel (`tico17` vs `augustoalrs-projects`) para tener un único enlace de preview por PR
 - [ ] Configurar cuenta gratuita de Sentry antes de `T-12`
 
 ## Problemas abiertos conocidos
-- Ninguno bloqueante. *(Nota menor heredada de `T-05`: la Sección C de rollback completo en `supabase/README.md` se completará dentro de `T-06`.)*
+- **UX móvil (no bloqueante, detectado por Augusto en `T-06`):** en pantalla estrecha de teléfono, el nombre del paciente en `PatientDetailPage.tsx` / `PatientListCard.tsx` se ve comprimido o cortado; se corregirá en `T-06b` (o en el próximo PR de UI).
 
 ## Documentos pendientes
 - `docs/DEPLOY.md` → `T-12`, antes del primer deploy de pruebas con la Dra. Nur
@@ -48,5 +48,5 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - Privacidad y términos → `T-14`, obligatorio antes de admitir usuarios/pacientes reales
 
 ## Métricas (actualizar al cerrar cada tarea)
-- Lead time medio: ~2 h (5 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 3
-- CI verde al primer intento: 4 / 5 · Lecciones anotadas: 6
+- Lead time medio: ~2 h (6 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 3
+- CI verde al primer intento: 5 / 6 · Lecciones anotadas: 7

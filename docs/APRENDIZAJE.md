@@ -12,6 +12,7 @@ Modo profesor: SÍ · Lo actualiza el Manager al fusionar cada tarea (R-19).
 | 2026-11-26 | T-03 | #10 | En ordenadores compartidos de clínica, cerrar sesión debe incluir respaldo `scope: 'local'` para borrar siempre el token local aunque falle internet en ese instante | `signOut({ scope: 'local' })` / sincronización de refs | Cierre de sesión incompleto ante fallo de red (`B-01`) y carrera en `SIGNED_OUT` (`B-02`) | No |
 | 2026-11-26 | T-04 | #13 | Registrar auditoría con un trigger en PostgreSQL y calcular dinero en céntimos enteros (`BigInt`) permite añadir nuevos países (como Venezuela USD/Bs.) sin errores de redondeo ni huecos de trazabilidad | Trigger `AFTER UPDATE` atómico / `BigInt` en céntimos | — | No |
 | 2026-11-26 | T-05 | #16 | Archivar pacientes con `deleted_at` (sin borrar filas), mostrar alergias en rojo arriba de todo y guardar la auditoría sin datos personales protege tanto la seguridad clínica como la privacidad | Borrado lógico + transición RLS en PostgreSQL 17 / auditoría sin PII | — | No |
+| 2026-11-27 | T-06 | #20 | En PostgreSQL los `CHECK` dejan pasar `NULL`, por eso validar rutas con condiciones estrictamente booleanas y servir archivos desde un bucket privado con URLs firmadas temporales evita fugas clínicas | Lógica trivaluada `NULL` en `CHECK` / Storage privado + `createSignedUrl` | — (atrapado en prompt por Revisor) | No |
 
 ## Errores que se repiten (candidatos a regla)
 - *(Vacío todavía. Cuando el mismo tipo de error aparezca por 2.ª vez, el Manager propondrá aquí una nueva regla `R-20…` siguiendo el manual 01 §11).*
