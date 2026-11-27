@@ -36,7 +36,7 @@ Sistema web/PWA unificado que sustituye el caos de Excel y papel con agenda inte
   - `RF-01`: El personal inicia sesión y solo ve datos de su propia clínica según su rol.
   - `RF-02`: El admin configura moneda, símbolo, etiqueta e impuesto porcentual de su clínica.
   - `RF-03`: El equipo crea, busca y edita pacientes (con borrado lógico) viendo siempre sus alertas médicas críticas en rojo; el `admin` puede revisar pacientes archivados y restaurarlos con auditoría.
-  - `RF-04`: El equipo adjunta, reemplaza y visualiza fotos intraorales/radiografías sintéticas desde almacenamiento privado (con optimización opcional para ahorrar espacio sin comprometer radiografías); el `admin` puede restaurar archivos archivados o purgar definitivamente su binario en Storage para liberar espacio dejando constancia en auditoría.
+  - `RF-04`: El equipo adjunta, reemplaza y visualiza fotos intraorales/radiografías sintéticas desde almacenamiento privado (con optimización opcional para ahorrar espacio sin comprometer radiografías); quien sube un archivo por error puede eliminarlo definitivamente durante los primeros 15 minutos liberando espacio en Storage, y el `admin` puede restaurar archivos archivados o purgarlos definitivamente en cualquier momento dejando constancia en auditoría.
   - `RF-05`: El equipo agenda citas, actualiza su estado, registra notas clínicas por visita y ve el panel del día.
   - `RF-06`: Recepción/dentista lanza un recordatorio de cita por WhatsApp (`wa.me`) que contiene solo fecha, hora y clínica (cero datos clínicos).
   - `RF-07`: El equipo administra el catálogo de tratamientos y genera presupuestos con totales exactos en céntimos.
