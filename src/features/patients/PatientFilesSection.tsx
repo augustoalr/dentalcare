@@ -605,10 +605,11 @@ export function PatientFilesSection({
         Object.freeze(prev.filter((item) => item.id !== archivedFile.id)),
       );
       setFiles((prev) =>
-        Object.freeze([
-          restored,
-          ...prev.filter((item) => item.id !== restored.id),
-        ]),
+        Object.freeze(
+          [restored, ...prev.filter((item) => item.id !== restored.id)].sort(
+            (left, right) => right.createdAt.localeCompare(left.createdAt),
+          ),
+        ),
       );
       setStatusBanner({
         title: t('patients.files.archived.restoreSuccessTitle'),

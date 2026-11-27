@@ -58,19 +58,7 @@ CREATE POLICY patient_files_storage_select_same_clinic
     )
   );
 
--- 2. Eliminar trigger anti-spoofing de INSERT, índices parciales, CHECK y columna purged_at
-DROP TRIGGER IF EXISTS trg_patient_files_05_enforce_defaults ON public.patient_files;
-DROP FUNCTION IF EXISTS private.enforce_patient_file_defaults();
-
-DROP INDEX IF EXISTS public.idx_patient_files_patient_archived;
-DROP INDEX IF EXISTS public.idx_patients_clinic_archived;
-
-ALTER TABLE public.patient_files
-  DROP CONSTRAINT IF EXISTS patient_files_purged_requires_deleted_check;
-ALTER TABLE public.patient_files
-  DROP COLUMN IF EXISTS purged_at;
-
--- 3. Restaurar funciones y políticas RLS previas de public.patients (T-05)
+-- 2. Restaurar funciones y políticas RLS previas de public.patients (T-05)
 CREATE OR REPLACE FUNCTION private.guard_patient_update()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -157,7 +145,8 @@ CREATE POLICY patients_update_same_clinic
   )
   WITH CHECK (clinic_id = (SELECT private.current_clinic_id()));
 
--- 4. Restaurar funciones y políticas RLS previas de public.patient_files (T-06)
+-- 3. Restaurar funciones y políticas RLS previas de public.patient_files (T-06)
+--    (antes de eliminar purged_at para evitar error de dependencia 2BP01 en políticas RLS)
 CREATE OR REPLACE FUNCTION private.begin_patient_file_archive_transition(p_patient_file_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -323,10 +312,24 @@ CREATE POLICY patient_files_update_same_clinic
   )
   WITH CHECK (clinic_id = (SELECT private.current_clinic_id()));
 
+-- 4. Eliminar trigger anti-spoofing de INSERT, índices parciales, CHECK y columna purged_at
+DROP TRIGGER IF EXISTS trg_patient_files_05_enforce_defaults ON public.patient_files;
+DROP FUNCTION IF EXISTS private.enforce_patient_file_defaults();
+
+DROP INDEX IF EXISTS public.idx_patient_files_patient_archived;
+DROP INDEX IF EXISTS public.idx_patients_clinic_archived;
+
+ALTER TABLE public.patient_files
+  DROP CONSTRAINT IF EXISTS patient_files_purged_requires_deleted_check;
+ALTER TABLE public.patient_files
+  DROP COLUMN IF EXISTS purged_at;
+
 COMMIT;
 ```
 
 ### B) Revertir únicamente `202611260003_patient_files_storage_rls.sql` (`T-06`)
+
+> Requiere haber revertido antes `202611270001_archive_restore_purge_rls.sql` (`T-06b`) para retirar primero la política `DELETE` de Storage y el trigger `trg_patient_files_05_enforce_defaults`.
 
 Si necesitas revertir únicamente los archivos clínicos y el bucket privado `patient-files` en desarrollo/pruebas manteniendo intactos `patients`, `clinics`, `profiles` y `audit_log`:
 
