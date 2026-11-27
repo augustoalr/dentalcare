@@ -1,12 +1,12 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-27 06:24 GST por Manager (Cierre T-06 en `2e864a1` + decisión de producto sobre T-06b vs T-07)
+Última actualización: 2026-11-27 06:40 GST por Manager (Decisión Opción A de Augusto → prompt T-06b en revisión R-02)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: Ninguna (acabamos de fusionar `T-06` en `2e864a1`)
-- Bloqueado por el humano: Decisión de producto de Augusto tras probar `T-06` — elegir entre hacer ahora `T-06b` (arreglo móvil del nombre del paciente + vista "Archivados" con restauración para `admin` + optimización inteligente de imágenes) o seguir directo a `T-07` (Catálogo de tratamientos) y dejar `T-06b` para después
-- Próxima tarea propuesta: `T-06b` (mejora UX móvil + Archivados/Restaurar + optimización de imágenes) o `T-07` — Catálogo de Tratamientos (`[DELICADA]`), según decisión de Augusto
+- En curso: `T-06b` — Archivados + Restauración + Purga de Espacio (`admin`), Reemplazo/Optimización de Imágenes y Ajuste Móvil (`[DELICADA]`, prompt `docs/prompts/T-06b.md` pendiente de `APTO` en conversación nueva `Revisor T-06b`, R-02)
+- Bloqueado por el humano: Ninguno (`dentalcare-dev` tiene migraciones `T-02`–`T-06` aplicadas + cuentas sintéticas listas)
+- Próxima tarea propuesta: `T-07` — Catálogo de Tratamientos (Precios en Céntimos, EN/ES) (`[DELICADA]`, tras fusionar `T-06b`)
 
 ## Tabla de tareas
 
@@ -18,6 +18,7 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-04 Config clínica multi-país | T-04 config-clinica | `t-04-config-clinica` | — (en serie) | #13 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`4f29b67`) | 2 (PR, ajuste VE) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `8351db87`; preview en vivo contra `dentalcare-dev` + `audit_log`: PASÓ |
 | T-05 Pacientes + Alertas rojas | T-05 pacientes-alertas | `t-05-pacientes-alertas` | — (en serie) | #16 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`ad91f23`) | 1 (PR) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `d1bc7778`; preview en vivo + `patient.archived` sin PII en `dentalcare-dev`: PASÓ |
 | T-06 Archivos clínicos privados | T-06 archivos-privados | `t-06-archivos-privados` | — (en serie) | #20 | ✅ Fusionada | 2026-11-26 | 2026-11-27 (`2e864a1`) | 1 (PR) / 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `0e2a5e23`; preview en vivo + bucket privado + `patient_file.archived` sin PII en `dentalcare-dev`: PASÓ |
+| T-06b Archivados, purga espacio, optimización y móvil | Revisor T-06b (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-27 | | 1 (prompt) | | `[DELICADA]` Decisión Opción A de Augusto; prompt `docs/prompts/T-06b.md` enviado a Revisor para `APTO` |
 | T-07 Catálogo de tratamientos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-04 |
 | T-08 Agenda + Notas + Panel del día | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
 | T-09 Recordatorios WhatsApp (`wa.me`) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | Depende de T-08 |
@@ -35,7 +36,6 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - [x] Abrir conversación nueva `"Manager"` en Fase E
 - [x] Previews automáticos de Vercel conectados y verificados en PR #3 (`T-01`), PR #10 (`T-03`) y PR #13 (`T-04`)
 - [x] Variables públicas de Supabase configuradas en Vercel + migraciones `T-02`/`T-04`/`T-05`/`T-06` (bucket privado `patient-files`) y cuentas sintéticas (`admin`/`dentist`) aplicadas en `dentalcare-dev`
-- [ ] *(Producto — decisión abierta)* Elegir si se ejecuta ahora `T-06b` (arreglo móvil del nombre del paciente + vista "Archivados" con restauración `admin` + reemplazo/optimización inteligente de imágenes) o si se avanza primero con `T-07`
 - [ ] *(Opcional, higiene)* Eliminar el proyecto duplicado en una de las dos cuentas de Vercel (`tico17` vs `augustoalrs-projects`) para tener un único enlace de preview por PR
 - [ ] Configurar cuenta gratuita de Sentry antes de `T-12`
 

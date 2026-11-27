@@ -74,6 +74,18 @@ Reglas: tareas pequeñas (1–2 días máximo, trabajo en serie adaptado a 3–6
 - Marca: `[DELICADA]`
 - Estado: ⏳
 
+## T-06b — Archivados + Restauración + Purga de Espacio (`admin`), Reemplazo/Optimización de Imágenes y Ajuste Móvil
+- Historia de usuario: Como administrador de clínica quiero ver qué pacientes y archivos se archivaron, poder restaurarlos si fue un error o eliminar definitivamente una imagen equivocada para liberar espacio de almacenamiento, optimizar fotos grandes sin perder calidad en radiografías y leer el nombre completo del paciente cómodamente desde el teléfono.
+- Objetivo: Migración SQL idempotente que permite al rol `admin` listar y restaurar pacientes y archivos archivados (con auditoría sin PII `patient.restored` / `patient_file.restored`), añade `purged_at` en `patient_files` y política `DELETE` en `storage.objects` exclusiva de `admin` sobre archivos ya archivados para liberar espacio real en Storage (auditado como `patient_file.purged` sin borrar la fila histórica en BD); añade pestañas Activos/Archivados para `admin`, botón Reemplazar en archivos activos, optimización inteligente de imágenes en cliente (`> 1 MB` / `> 2048 px` con casilla *"Mantener calidad original"* para radiografías) y corrige la responsividad móvil del nombre del paciente.
+- Criterios de aceptación:
+  - [ ] Solo `admin` puede ver archivados, restaurar pacientes/archivos (`patient.restored` / `patient_file.restored` sin PII) o purgar definitivamente el binario de un archivo ya archivado en Storage (`storage.remove` + `purged_at` + `patient_file.purged` sin PII); `dentist` y `receptionist` siguen bloqueados en UI y RLS.
+  - [ ] Botón **Reemplazar** sube el archivo nuevo primero y solo archiva el anterior si la subida triunfa; la optimización de imágenes reduce fotos grandes manteniendo calidad alta, deja PDFs intactos y respeta la casilla *"Mantener calidad original"*.
+  - [ ] El nombre del paciente se lee completo y sin aplastarse en pantallas de teléfono en listado (`/patients`) y ficha (`/patients/:patientId`).
+  - [ ] `pnpm verify` (incluyendo `db:verify` en PostgreSQL 17 real) en verde.
+- Depende de: T-05, T-06
+- Marca: `[DELICADA]`
+- Estado: ⏳
+
 ## T-07 — Catálogo de Tratamientos (Precios en Céntimos, EN/ES)
 - Historia de usuario: Como administrador quiero mantener un catálogo de tratamientos con precios estándar para presupuestar rápido y sin errores.
 - Objetivo: Migración de `treatments_catalog` (`default_price_cents` entero, `name_en`, `name_es`, `default_duration_min`) con RLS y CRUD en la interfaz.
