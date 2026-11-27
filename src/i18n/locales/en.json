@@ -441,5 +441,152 @@
         }
       }
     }
+  },
+  "treatments": {
+    "title": "Treatments catalog",
+    "description": "Standard dental procedures in English and Spanish with exact cent-level pricing and default appointment durations.",
+    "adminBadge": "Editable by administrator",
+    "readOnlyBadge": "Read-only catalog",
+    "readOnlyTitle": "Read-only treatments catalog",
+    "readOnlyDescription": "Only a clinic Administrator can create, edit, archive, or restore treatments. You can search procedures, filter by category, and check standard prices below.",
+    "countSingle": "1 treatment",
+    "countPlural": "{count} treatments",
+    "archivedCountSingle": "1 archived treatment",
+    "archivedCountPlural": "{count} archived treatments",
+    "newTreatmentButton": "New treatment",
+    "closeFormButton": "Close form",
+    "unconfiguredTitle": "Treatments catalog unavailable",
+    "unconfiguredDescription": "Connect the public Supabase environment variables to load and manage your clinic's treatments catalog.",
+    "tabs": {
+      "ariaLabel": "Treatments catalog view",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "categories": {
+      "all": "All categories",
+      "preventive": "Preventive",
+      "restorative": "Restorative",
+      "endodontics": "Endodontics",
+      "periodontics": "Periodontics",
+      "orthodontics": "Orthodontics",
+      "surgery": "Oral surgery",
+      "prosthetics": "Prosthetics",
+      "diagnostics": "Diagnostics",
+      "aesthetics": "Aesthetics",
+      "other": "Other"
+    },
+    "filters": {
+      "searchLabel": "Search treatments",
+      "searchPlaceholder": "Search by code or name (EN / ES)…",
+      "categoryLabel": "Category",
+      "includeInactiveLabel": "Show paused treatments",
+      "hiddenPausedHint": "{count} paused treatment(s) currently hidden.",
+      "clearButton": "Clear filters",
+      "resultsCount": "Showing {shown} of {total}"
+    },
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "archived": "Archived"
+    },
+    "card": {
+      "durationMinutes": "{minutes} min",
+      "editButton": "Edit",
+      "archiveButton": "Archive",
+      "archivedOn": "Archived {date}",
+      "restoreButton": "Restore treatment",
+      "archiveConfirm": {
+        "title": "Archive this treatment?",
+        "description": "The treatment will be hidden from the active catalog without altering past records, and the event will be recorded in the audit log.",
+        "confirmButton": "Confirm archive",
+        "archivingButton": "Archiving…",
+        "cancelButton": "Keep in catalog",
+        "errorTitle": "Could not archive treatment",
+        "errorDescription": "We could not archive this treatment right now. Please try again."
+      },
+      "restoreConfirm": {
+        "title": "Restore this archived treatment?",
+        "description": "The treatment will return to your clinic's active catalog and the restore event will be recorded in the audit log.",
+        "confirmButton": "Confirm restore",
+        "restoringButton": "Restoring…",
+        "cancelButton": "Keep archived",
+        "errorTitle": "Could not restore treatment",
+        "errorDescription": "We could not restore this treatment right now. Please try again.",
+        "duplicateCodeError": "Another active treatment in your clinic already uses this code. Edit or archive the active one before restoring this record."
+      }
+    },
+    "feedback": {
+      "createdTitle": "Treatment added to catalog",
+      "createdDescription": "The new procedure is now available in your clinic's catalog and recorded in the audit log.",
+      "updatedTitle": "Treatment updated",
+      "updatedDescription": "Your changes have been saved and recorded in the audit log.",
+      "archivedTitle": "Treatment archived",
+      "archivedDescription": "The treatment was moved to Archived and recorded in the audit log.",
+      "restoredTitle": "Treatment restored",
+      "restoredDescription": "The treatment is back in your clinic's catalog and recorded in the audit log."
+    },
+    "empty": {
+      "noTreatmentsTitle": "No treatments in the catalog yet",
+      "noTreatmentsDescription": "Create your first dental procedure with exact pricing so your team can prepare consistent quotes.",
+      "noTreatmentsReadOnlyDescription": "Your clinic administrator has not added any standard treatments to the catalog yet.",
+      "noSearchResultsTitle": "No matching treatments found",
+      "noSearchResultsDescription": "No treatment matches your current search text, category, or status filter.",
+      "noArchivedTitle": "No archived treatments",
+      "noArchivedDescription": "Treatments archived by an administrator will appear here for review or restoration."
+    },
+    "errors": {
+      "listLoadTitle": "Could not load treatments catalog",
+      "listLoadDescription": "We could not retrieve your clinic's treatments right now. Please try again.",
+      "archivedLoadTitle": "Could not load archived treatments",
+      "archivedLoadDescription": "We could not retrieve archived treatments right now. Please try again."
+    },
+    "form": {
+      "createCardTitle": "New catalog treatment",
+      "createCardDescription": "Define a unique clinic code, bilingual names, standard duration, and exact price in your clinic's currency.",
+      "editCardTitle": "Edit treatment",
+      "editCardDescription": "Update standard names, category, duration, status, or price. Past quotes and invoices are not altered.",
+      "codeLabel": "Treatment code",
+      "codePlaceholder": "CLEAN-01",
+      "codeHint": "Uppercase letters, numbers, hyphens, or underscores (max 32 characters, unique per clinic).",
+      "categoryLabel": "Category",
+      "nameEnLabel": "Name (English)",
+      "nameEnPlaceholder": "Dental prophylaxis",
+      "nameEsLabel": "Name (Spanish)",
+      "nameEsPlaceholder": "Limpieza dental",
+      "priceLabel": "Standard price ({currency})",
+      "pricePlaceholder": "150.50",
+      "priceHint": "Stored in exact integer cents (up to 2 decimal places, using . or ,).",
+      "durationLabel": "Default duration (minutes)",
+      "durationPlaceholder": "30",
+      "durationHint": "Between 5 and 480 minutes.",
+      "isActiveLabel": "Active for new quotes and appointments",
+      "isActiveHint": "Uncheck to pause this treatment without archiving it.",
+      "previewTitle": "Live price preview",
+      "previewBaseLabel": "Base price",
+      "previewTaxLabel": "{taxLabel} ({rate}%)",
+      "previewTotalLabel": "Estimated total with tax",
+      "previewInvalidHint": "Enter a valid amount (for example 150.50) to preview exact clinic formatting and tax.",
+      "auditNotice": "Every creation or edit is automatically recorded in your clinic's immutable audit log.",
+      "createSubmitButton": "Create treatment",
+      "editSubmitButton": "Save changes",
+      "savingButton": "Saving…",
+      "cancelButton": "Cancel",
+      "saveErrorTitle": "Could not save treatment",
+      "saveErrorDescription": "We could not save this treatment right now. Your entered values are still on screen so you can try again.",
+      "duplicateCodeError": "An active treatment with this code already exists in your clinic. Choose a different code."
+    },
+    "validation": {
+      "codeRequired": "Enter a treatment code.",
+      "codeTooLong": "Treatment code must be 32 characters or fewer.",
+      "codeInvalid": "Start with a letter or number and use only letters, numbers, hyphens (-), or underscores (_).",
+      "nameEnRequired": "Enter the treatment name in English.",
+      "nameEnTooLong": "English name must be 120 characters or fewer.",
+      "nameEsRequired": "Enter the treatment name in Spanish.",
+      "nameEsTooLong": "Spanish name must be 120 characters or fewer.",
+      "categoryInvalid": "Select a valid treatment category.",
+      "priceInvalid": "Enter a valid non-negative price with up to 2 decimal places.",
+      "durationInvalid": "Enter a whole number of minutes between 5 and 480.",
+      "isActiveInvalid": "Select a valid active status."
+    }
   }
 }

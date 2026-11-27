@@ -1,6 +1,7 @@
 import { isSupportedLocale, type SupportedLocale } from '@/domain/locale';
 
 export const MAX_TAX_RATE_BPS = 10_000;
+export const MAX_MONEY_AMOUNT_CENTS = 99_999_999_999;
 export const CLINIC_NAME_MAX_LENGTH = 120;
 export const CURRENCY_SYMBOL_MAX_LENGTH = 10;
 export const TAX_LABEL_MAX_LENGTH = 20;
@@ -9,6 +10,7 @@ export const PREVIEW_SAMPLE_SUBTOTAL_CENTS = 10_000;
 
 const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/;
 const PERCENT_INPUT_PATTERN = /^(\d+)(?:[.,](\d{1,2}))?$/;
+const MONEY_INPUT_PATTERN = /^(\d+)(?:[.,](\d{1,2}))?$/;
 const TRAILING_ALPHANUMERIC_OR_DOT_PATTERN = /[\p{L}\p{N}.]$/u;
 
 export interface CurrencyDisplayConfig {
@@ -351,6 +353,72 @@ export function bpsToPercentString(taxRateBps: number): string {
 
   const trimmedFraction = String(remainder).padStart(2, '0').replace(/0$/, '');
   return `${whole}.${trimmedFraction}`;
+}
+
+function assertValidMaxMoneyCents(maxCents: number): void {
+  if (!Number.isSafeInteger(maxCents) || maxCents < 0) {
+    throw new RangeError('maxCents must be a non-negative safe integer');
+  }
+}
+
+/**
+ * Parses a human decimal money string (`"0"`, `"50"`, `"150.5"`, `"150.50"`,
+ * `"150,50"`, `"0000150.50"`, `"19.99"`) into exact integer cents using `BigInt`
+ * without any floating-point arithmetic. Returns `null` for blank, negative,
+ * incomplete decimals (`".50"`, `"50."`), `> 2` decimals, ambiguous multi-separator
+ * strings, non-numeric input, or values exceeding `maxCents`.
+ */
+export function moneyStringToCents(
+  rawAmount: string,
+  maxCents: number = MAX_MONEY_AMOUNT_CENTS,
+): number | null {
+  assertValidMaxMoneyCents(maxCents);
+
+  const trimmed = rawAmount.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  const match = MONEY_INPUT_PATTERN.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+
+  const rawWhole = match[1] ?? '';
+  const rawFrac = match[2] ?? '';
+
+  const significantWhole = rawWhole.replace(/^0+/, '') || '0';
+  const paddedFrac = rawFrac.padEnd(2, '0');
+
+  const totalCentsBig = BigInt(significantWhole) * 100n + BigInt(paddedFrac);
+  if (totalCentsBig < 0n || totalCentsBig > BigInt(maxCents)) {
+    return null;
+  }
+
+  const result = Number(totalCentsBig);
+  if (!Number.isSafeInteger(result)) {
+    return null;
+  }
+
+  return result === 0 ? 0 : result;
+}
+
+/**
+ * Formats a non-negative safe integer amount in cents into a canonical input
+ * decimal string (`0` -> `"0.00"`, `5` -> `"0.05"`, `1999` -> `"19.99"`,
+ * `15000` -> `"150.00"`) using pure `BigInt` division.
+ */
+export function centsToInputString(amountCents: number): string {
+  if (!Number.isSafeInteger(amountCents) || amountCents < 0) {
+    throw new RangeError('amountCents must be a non-negative safe integer');
+  }
+
+  const normalizedCents = amountCents === 0 ? 0 : amountCents;
+  const centsBig = BigInt(normalizedCents);
+  const wholeUnits = centsBig / 100n;
+  const remainderCents = centsBig % 100n;
+
+  return `${wholeUnits.toString()}.${remainderCents.toString().padStart(2, '0')}`;
 }
 
 /**

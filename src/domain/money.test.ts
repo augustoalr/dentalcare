@@ -4,9 +4,12 @@ import {
   bpsToPercentString,
   calculateTaxCents,
   calculateTaxSummaryCents,
+  centsToInputString,
   CLINIC_SETTINGS_PRESETS,
   COMMON_CLINIC_TIMEZONES,
   formatMoney,
+  MAX_MONEY_AMOUNT_CENTS,
+  moneyStringToCents,
   percentStringToBps,
   validateClinicSettings,
   type CurrencyDisplayConfig,
@@ -223,6 +226,84 @@ describe('T-04 Pure money, tax (_bps) and multi-country clinic settings domain',
       expect(() => bpsToPercentString(-1)).toThrow(RangeError);
       expect(() => bpsToPercentString(10_001)).toThrow(RangeError);
       expect(() => bpsToPercentString(12.3)).toThrow(RangeError);
+    });
+  });
+
+  describe('T-07 moneyStringToCents and centsToInputString (BigInt exact conversion)', () => {
+    it('converts EUR/AED/USD/VES decimal strings to exact integer cents without floating-point drift', () => {
+      // Classic IEEE-754 floating-point trap values (e.g. 0.29 * 100 === 28.999999999999996)
+      expect(moneyStringToCents('0')).toBe(0);
+      expect(moneyStringToCents('0.00')).toBe(0);
+      expect(moneyStringToCents('0.01')).toBe(1);
+      expect(moneyStringToCents('0.10')).toBe(10);
+      expect(moneyStringToCents('0.29')).toBe(29);
+      expect(moneyStringToCents('1.15')).toBe(115);
+      expect(moneyStringToCents('19.99')).toBe(1_999);
+      expect(moneyStringToCents('19,99')).toBe(1_999);
+      expect(moneyStringToCents('50')).toBe(5_000);
+      expect(moneyStringToCents('100.55')).toBe(10_055);
+      expect(moneyStringToCents('150.5')).toBe(15_050);
+      expect(moneyStringToCents('150.50')).toBe(15_050);
+      expect(moneyStringToCents('150,50')).toBe(15_050);
+      expect(moneyStringToCents('  0000150.50  ')).toBe(15_050);
+      expect(moneyStringToCents('999999999.99')).toBe(MAX_MONEY_AMOUNT_CENTS);
+      expect(moneyStringToCents('999999999,99')).toBe(MAX_MONEY_AMOUNT_CENTS);
+      expect(moneyStringToCents('12.50', 1_250)).toBe(1_250);
+    });
+
+    it('rejects malformed, negative, incomplete, multi-separator, >2 decimal, or out-of-range strings', () => {
+      expect(moneyStringToCents('')).toBeNull();
+      expect(moneyStringToCents('   ')).toBeNull();
+      expect(moneyStringToCents('.50')).toBeNull();
+      expect(moneyStringToCents(',50')).toBeNull();
+      expect(moneyStringToCents('50.')).toBeNull();
+      expect(moneyStringToCents('50,')).toBeNull();
+      expect(moneyStringToCents('-10.00')).toBeNull();
+      expect(moneyStringToCents('+10.00')).toBeNull();
+      expect(moneyStringToCents('1.005')).toBeNull();
+      expect(moneyStringToCents('1,005')).toBeNull();
+      expect(moneyStringToCents('1.234.56')).toBeNull();
+      expect(moneyStringToCents('1,234.56')).toBeNull();
+      expect(moneyStringToCents('1.234,56')).toBeNull();
+      expect(moneyStringToCents('AED 100')).toBeNull();
+      expect(moneyStringToCents('abc')).toBeNull();
+      expect(moneyStringToCents('1000000000.00')).toBeNull();
+      expect(moneyStringToCents('12.51', 1_250)).toBeNull();
+    });
+
+    it('throws RangeError when maxCents is invalid', () => {
+      expect(() => moneyStringToCents('10.00', -1)).toThrow(RangeError);
+      expect(() => moneyStringToCents('10.00', 10.5)).toThrow(RangeError);
+      expect(() => moneyStringToCents('10.00', Number.NaN)).toThrow(RangeError);
+      expect(() =>
+        moneyStringToCents('10.00', Number.MAX_SAFE_INTEGER + 1),
+      ).toThrow(RangeError);
+    });
+
+    it('formats non-negative integer cents back to exact input strings and rejects invalid numbers', () => {
+      expect(centsToInputString(0)).toBe('0.00');
+      expect(centsToInputString(-0)).toBe('0.00');
+      expect(centsToInputString(1)).toBe('0.01');
+      expect(centsToInputString(5)).toBe('0.05');
+      expect(centsToInputString(29)).toBe('0.29');
+      expect(centsToInputString(1_999)).toBe('19.99');
+      expect(centsToInputString(15_000)).toBe('150.00');
+      expect(centsToInputString(MAX_MONEY_AMOUNT_CENTS)).toBe('999999999.99');
+
+      // Round-trip stability with formatMoney across currencies
+      const parsed = moneyStringToCents('150.50');
+      expect(parsed).toBe(15_050);
+      expect(centsToInputString(parsed!)).toBe('150.50');
+      expect(formatMoney(parsed!, AED_CONFIG, 'en')).toBe('AED 150.50');
+      expect(formatMoney(parsed!, EUR_CONFIG, 'es')).toBe('€150,50');
+      expect(formatMoney(parsed!, VES_CONFIG, 'es')).toBe('Bs. 150,50');
+
+      expect(() => centsToInputString(-1)).toThrow(RangeError);
+      expect(() => centsToInputString(12.5)).toThrow(RangeError);
+      expect(() => centsToInputString(Number.NaN)).toThrow(RangeError);
+      expect(() =>
+        centsToInputString(Number.MAX_SAFE_INTEGER + 1),
+      ).toThrow(RangeError);
     });
   });
 
