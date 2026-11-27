@@ -1,10 +1,10 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-27 12:48 GST por Manager (Corrección de prompt T-07 tras hallazgo B-01 del Revisor)
+Última actualización: 2026-11-27 13:19 GST por Manager (Inicio Coder T-07 tras APTO del Revisor en `eeca833`)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-07` — Catálogo de Tratamientos (Precios en Céntimos, EN/ES) (`[DELICADA]`, prompt `docs/prompts/T-07.md` corregido en ronda 2 tras B-01 de `Revisor T-07`, pendiente de `APTO`)
+- En curso: `T-07` — Catálogo de Tratamientos (Precios en Céntimos, EN/ES) (`[DELICADA]`, prompt `APTO` por el Revisor en `eeca833`, entregado al Coder `T-07 catalogo-tratamientos`)
 - Bloqueado por el humano: Ninguno (`dentalcare-dev` tiene migraciones `T-02`–`T-06b` aplicadas + cuentas sintéticas listas)
 - Próxima tarea propuesta: `T-08` — Agenda de Citas + Notas Clínicas por Visita + Panel del Día (`[DELICADA]`, tras fusionar `T-07`)
 
@@ -19,7 +19,7 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-05 Pacientes + Alertas rojas | T-05 pacientes-alertas | `t-05-pacientes-alertas` | — (en serie) | #16 | ✅ Fusionada | 2026-11-26 | 2026-11-26 (`ad91f23`) | 1 (PR) / 1 (prompt) | 0 | `[DELICADA]` Revisor `APROBADO` en `d1bc7778`; preview en vivo + `patient.archived` sin PII en `dentalcare-dev`: PASÓ |
 | T-06 Archivos clínicos privados | T-06 archivos-privados | `t-06-archivos-privados` | — (en serie) | #20 | ✅ Fusionada | 2026-11-26 | 2026-11-27 (`2e864a1`) | 1 (PR) / 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `0e2a5e23`; preview en vivo + bucket privado + `patient_file.archived` sin PII en `dentalcare-dev`: PASÓ |
 | T-06b Archivados, purga espacio (admin + 15 min), optimización y móvil | T-06b archivados-purga-movil | `t-06b-archivados-purga-movil` | — (en serie) | #26 | ✅ Fusionada | 2026-11-27 | 2026-11-27 (`48e5051`) | 2 (PR) / 2 (prompt) | 4 (3 en prompt: B-01/B-02/B-03; 1 en PR: orden rollback `README`) | `[DELICADA]` Revisor `APROBADO` en `b9c0757a`; preview móvil/escritorio + `restored`/`purged` sin PII en `dentalcare-dev`: PASÓ |
-| T-07 Catálogo de tratamientos | Revisor T-07 (prompt) | — | — (en serie) | — | 🔍 En revisión | 2026-11-27 | | 2 (prompt) | 1 (en prompt: B-01 archivado puro en `guard_treatment_catalog_update`) | `[DELICADA]` Prompt `docs/prompts/T-07.md` corregido (B-01 + 5 mejoras) para re-validación `APTO` |
+| T-07 Catálogo de tratamientos | T-07 catalogo-tratamientos | `t-07-catalogo-tratamientos` | — (en serie) | — | 🛠️ En curso | 2026-11-27 | | 2 (prompt) | 1 (en prompt: B-01 archivado puro en `guard_treatment_catalog_update`) | `[DELICADA]` Prompt `APTO` por Revisor (`eeca833`), en manos del Coder |
 | T-08 Agenda + Notas + Panel del día | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05 |
 | T-09 Recordatorios WhatsApp (`wa.me`) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | Depende de T-08 |
 | T-09b Modo bimoneda (USD + Bs. + tasa del día) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Decisión Opción A de Augusto; antes de T-10 y T-11 |
