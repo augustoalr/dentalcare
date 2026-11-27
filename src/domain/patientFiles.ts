@@ -4,6 +4,7 @@ export const PATIENT_FILES_BUCKET_ID = 'patient-files' as const;
 export const PATIENT_FILE_MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB = 10,485,760 bytes
 export const PATIENT_FILE_SIGNED_URL_TTL_SECONDS = 300; // 5 minutes
 export const PATIENT_FILE_NAME_MAX_LENGTH = 255;
+export const PATIENT_FILE_SELF_PURGE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 export const ALLOWED_PATIENT_FILE_MIME_TYPES = [
   'image/jpeg',
@@ -29,6 +30,10 @@ export interface PatientFileRecord {
   readonly fileSizeBytes: number;
   readonly uploadedBy: string;
   readonly createdAt: string;
+}
+
+export interface ArchivedPatientFileRecord extends PatientFileRecord {
+  readonly deletedAt: string;
 }
 
 export interface RawPatientFileUploadInput {
@@ -283,4 +288,39 @@ export function formatPatientFileDate(
 
   const [, year, month, day] = match;
   return locale === 'es' ? `${day}/${month}/${year}` : `${year}-${month}-${day}`;
+}
+
+/**
+ * Pure UI-visibility helper checking whether the signed-in user is the original
+ * uploader of a clinical file still within the 15-minute mistaken-upload window.
+ *
+ * NOTE: Client-side check controls UI button visibility only; real authorization
+ * is enforced server-side by PostgreSQL RLS and `guard_patient_file_update()`.
+ */
+export function canSelfPurgeMistakenUpload(
+  file: Pick<PatientFileRecord, 'uploadedBy' | 'createdAt'>,
+  currentUserId: string | null | undefined,
+  referenceDate: Date = new Date(),
+): boolean {
+  if (typeof currentUserId !== 'string') {
+    return false;
+  }
+
+  const normalizedCurrentUser = currentUserId.trim().toLowerCase();
+  const normalizedUploader = file.uploadedBy.trim().toLowerCase();
+  if (
+    normalizedCurrentUser.length === 0 ||
+    normalizedUploader !== normalizedCurrentUser
+  ) {
+    return false;
+  }
+
+  const createdTimeMs = Date.parse(file.createdAt);
+  const referenceTimeMs = referenceDate.getTime();
+  if (!Number.isFinite(createdTimeMs) || !Number.isFinite(referenceTimeMs)) {
+    return false;
+  }
+
+  const ageMs = referenceTimeMs - createdTimeMs;
+  return ageMs >= 0 && ageMs <= PATIENT_FILE_SELF_PURGE_WINDOW_MS;
 }

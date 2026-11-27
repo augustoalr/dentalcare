@@ -27,7 +27,7 @@ export function PatientListCard({ patient }: PatientListCardProps) {
     >
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <p className="min-w-0 max-w-full truncate text-base font-semibold text-text-primary break-words">
+          <p className="min-w-0 max-w-full line-clamp-2 text-base font-semibold text-text-primary break-words [overflow-wrap:anywhere]">
             {patient.fullName}
           </p>
 

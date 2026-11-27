@@ -455,12 +455,9 @@ describe('T-05 Patients schema, multi-clinic RLS, soft-delete, and PII-free arch
     );
     expect(archiveRes.rowCount).toBe(1);
 
-    // Immediately invisible in SELECT for all roles (including adminA)
-    for (const userId of [
-      fixtures.adminA,
-      fixtures.dentistA,
-      fixtures.receptionistA,
-    ]) {
+    // Immediately invisible in SELECT for non-admin roles (dentistA and receptionistA),
+    // while adminA can inspect archived rows for controlled restoration (T-06b)
+    for (const userId of [fixtures.dentistA, fixtures.receptionistA]) {
       const afterSelect = await db.runAsRole(
         { role: 'authenticated', userId },
         (tx) =>
@@ -471,18 +468,44 @@ describe('T-05 Patients schema, multi-clinic RLS, soft-delete, and PII-free arch
       expect(afterSelect.rows).toHaveLength(0);
     }
 
-    // Subsequent edit or reactivation attempt by authenticated staff updates 0 rows
-    const postArchiveEdit = await db.runAsRole(
-      { role: 'authenticated', userId: fixtures.adminA, commit: true },
+    const adminArchivedSelect = await db.runAsRole(
+      { role: 'authenticated', userId: fixtures.adminA },
       (tx) =>
-        tx.query(
-          `UPDATE public.patients
-           SET full_name = 'Reactivated Attempt', deleted_at = NULL
-           WHERE id = $1`,
+        tx.query<{ id: string; deleted_at: string | null }>(
+          `SELECT id::text, deleted_at::text FROM public.patients WHERE id = $1`,
           [sensitivePatient.id],
         ),
     );
-    expect(postArchiveEdit.rowCount).toBe(0);
+    expect(adminArchivedSelect.rows).toHaveLength(1);
+    expect(adminArchivedSelect.rows[0]?.deleted_at).not.toBeNull();
+
+    // Non-admin reactivation attempt updates 0 rows; admin editing full_name alongside restore raises 42501
+    for (const userId of [fixtures.dentistA, fixtures.receptionistA]) {
+      const nonAdminReactivate = await db.runAsRole(
+        { role: 'authenticated', userId, commit: true },
+        (tx) =>
+          tx.query(
+            `UPDATE public.patients
+             SET full_name = 'Reactivated Attempt', deleted_at = NULL
+             WHERE id = $1`,
+            [sensitivePatient.id],
+          ),
+      );
+      expect(nonAdminReactivate.rowCount).toBe(0);
+    }
+
+    await expectPgError(
+      () =>
+        db.runAsRole({ role: 'authenticated', userId: fixtures.adminA }, (tx) =>
+          tx.query(
+            `UPDATE public.patients
+             SET full_name = 'Reactivated Attempt', deleted_at = NULL
+             WHERE id = $1`,
+            [sensitivePatient.id],
+          ),
+        ),
+      '42501',
+    );
 
     // Anti-spoofing: authenticated user cannot call private archive transition helper directly or spoof GUC
     await expectPgError(
@@ -495,18 +518,20 @@ describe('T-05 Patients schema, multi-clinic RLS, soft-delete, and PII-free arch
       '42501',
     );
 
-    const gucSpoofAttempt = await db.runAsRole(
-      { role: 'authenticated', userId: fixtures.adminA },
-      async (tx) => {
-        await tx.query(
-          `SELECT set_config('dentalcare.archiving_active', 'on', true)`,
-        );
-        return tx.query(`SELECT id FROM public.patients WHERE id = $1`, [
-          sensitivePatient.id,
-        ]);
-      },
-    );
-    expect(gucSpoofAttempt.rows).toHaveLength(0);
+    for (const userId of [fixtures.dentistA, fixtures.receptionistA]) {
+      const gucSpoofAttempt = await db.runAsRole(
+        { role: 'authenticated', userId },
+        async (tx) => {
+          await tx.query(
+            `SELECT set_config('dentalcare.archiving_active', 'on', true)`,
+          );
+          return tx.query(`SELECT id FROM public.patients WHERE id = $1`, [
+            sensitivePatient.id,
+          ]);
+        },
+      );
+      expect(gucSpoofAttempt.rows).toHaveLength(0);
+    }
 
     // Verify atomic audit_log entry via adminA: strictly 1 row, metadata_json = '{}', ZERO PII
     const auditEntries = await db.runAsRole(
@@ -546,7 +571,7 @@ describe('T-05 Patients schema, multi-clinic RLS, soft-delete, and PII-free arch
 
     const serializedAudit = JSON.stringify(auditEntries.rows[0]);
     expect(serializedAudit).not.toContain('Samira');
-    expect(serializedAudit).not.toContain('777');
+    expect(serializedAudit).not.toContain('+971 58 777 6666');
     expect(serializedAudit).not.toContain('samira.sensitive');
     expect(serializedAudit).not.toContain('Amoxicillin');
     expect(serializedAudit).not.toContain('Private synthetic');

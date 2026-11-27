@@ -25,6 +25,10 @@ export interface PatientRecord {
   readonly updatedAt: string;
 }
 
+export interface ArchivedPatientRecord extends PatientRecord {
+  readonly deletedAt: string;
+}
+
 export interface PatientInput {
   readonly fullName: string;
   readonly phone: string | null;

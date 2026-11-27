@@ -744,6 +744,229 @@ describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
     expect(signErr?.message).not.toContain('LEAKED_SECRET_TOKEN');
   });
 
+  it('enforces least-privilege payloads for restorePatient, restorePatientFile, purgeArchivedPatientFile, and purgeMistakenUpload, including B-03 silent storage denial protection', async () => {
+    const patientId = '22222222-2222-4222-8222-222222222222';
+    const fileId = '44444444-4444-4444-8444-444444444444';
+    const storagePath =
+      '11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222/44444444-4444-4444-8444-444444444444.jpg';
+
+    // 1. restorePatient sends ONLY { deleted_at: null } without .select() or .delete()
+    const restorePatientSelectSpy = vi.fn();
+    const restorePatientNotSpy = vi.fn().mockImplementation(() => {
+      const p = Promise.resolve({ data: null, error: null }) as Promise<{
+        data: null;
+        error: null;
+      }> & { select: typeof restorePatientSelectSpy };
+      p.select = restorePatientSelectSpy;
+      return p;
+    });
+    const restorePatientEqSpy = vi
+      .fn()
+      .mockReturnValue({ not: restorePatientNotSpy });
+    const restorePatientUpdateSpy = vi
+      .fn()
+      .mockReturnValue({ eq: restorePatientEqSpy });
+    const restorePatientDeleteSpy = vi.fn();
+
+    const patientRepo = new SupabasePatientRepository({
+      from: vi.fn().mockReturnValue({
+        update: restorePatientUpdateSpy,
+        delete: restorePatientDeleteSpy,
+      }),
+    } as unknown as DentalCareSupabaseClient);
+
+    await patientRepo.restorePatient(patientId);
+    expect(restorePatientUpdateSpy).toHaveBeenCalledWith({ deleted_at: null });
+    expect(
+      Object.keys(
+        restorePatientUpdateSpy.mock.calls[0]?.[0] as Record<string, unknown>,
+      ),
+    ).toEqual(['deleted_at']);
+    expect(restorePatientEqSpy).toHaveBeenCalledWith('id', patientId);
+    expect(restorePatientNotSpy).toHaveBeenCalledWith('deleted_at', 'is', null);
+    expect(restorePatientSelectSpy).not.toHaveBeenCalled();
+    expect(restorePatientDeleteSpy).not.toHaveBeenCalled();
+
+    // 2. restorePatientFile sends ONLY { deleted_at: null } without .select(), .delete(), or storage.remove()
+    const fileSelectSpy = vi.fn();
+    const callOrder: string[] = [];
+
+    const makeTerminalResult = () => {
+      const p = Promise.resolve({ data: null, error: null }) as Promise<{
+        data: null;
+        error: null;
+      }> & { select: typeof fileSelectSpy };
+      p.select = fileSelectSpy;
+      return p;
+    };
+
+    const removeSpy = vi.fn().mockImplementation(async () => {
+      callOrder.push('storage.remove');
+      return { data: [{ name: storagePath }], error: null };
+    });
+
+    const recordedChainCalls: {
+      eqCalls: [string, unknown][];
+      notCalls: [string, string, unknown][];
+      isCalls: [string, unknown][];
+    } = { eqCalls: [], notCalls: [], isCalls: [] };
+
+    const updateFileSpy = vi.fn().mockImplementation(() => {
+      callOrder.push('db.update');
+      const chain = {
+        eq(col: string, val: unknown) {
+          recordedChainCalls.eqCalls.push([col, val]);
+          return chain;
+        },
+        not(col: string, op: string, val: unknown) {
+          recordedChainCalls.notCalls.push([col, op, val]);
+          return chain;
+        },
+        is(col: string, val: unknown) {
+          recordedChainCalls.isCalls.push([col, val]);
+          if (col === 'purged_at') {
+            return makeTerminalResult();
+          }
+          return chain;
+        },
+      };
+      return chain;
+    });
+    const deleteFileSpy = vi.fn();
+
+    const fileRepo = new SupabasePatientFileRepository({
+      from: vi.fn().mockReturnValue({
+        update: updateFileSpy,
+        delete: deleteFileSpy,
+      }),
+      storage: {
+        from: vi.fn().mockReturnValue({
+          remove: removeSpy,
+        }),
+      },
+    } as unknown as DentalCareSupabaseClient);
+
+    await fileRepo.restorePatientFile(fileId);
+    expect(updateFileSpy).toHaveBeenCalledWith({ deleted_at: null });
+    expect(
+      Object.keys(updateFileSpy.mock.calls[0]?.[0] as Record<string, unknown>),
+    ).toEqual(['deleted_at']);
+    expect(fileSelectSpy).not.toHaveBeenCalled();
+    expect(deleteFileSpy).not.toHaveBeenCalled();
+    expect(removeSpy).not.toHaveBeenCalled();
+
+    // 3. purgeArchivedPatientFile calls storage.remove([storagePath]) FIRST, then updates ONLY { purged_at } with .eq('storage_path')
+    callOrder.length = 0;
+    recordedChainCalls.eqCalls.length = 0;
+    recordedChainCalls.notCalls.length = 0;
+    recordedChainCalls.isCalls.length = 0;
+
+    await fileRepo.purgeArchivedPatientFile(fileId, storagePath);
+    expect(callOrder).toEqual(['storage.remove', 'db.update']);
+    expect(removeSpy).toHaveBeenLastCalledWith([storagePath]);
+    const archivedPurgePayload = updateFileSpy.mock.calls[1]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(archivedPurgePayload)).toEqual(['purged_at']);
+    expect(typeof archivedPurgePayload.purged_at).toBe('string');
+    expect(recordedChainCalls.eqCalls).toEqual([
+      ['id', fileId],
+      ['storage_path', storagePath],
+    ]);
+    expect(recordedChainCalls.notCalls).toEqual([['deleted_at', 'is', null]]);
+    expect(recordedChainCalls.isCalls).toEqual([['purged_at', null]]);
+    expect(fileSelectSpy).not.toHaveBeenCalled();
+    expect(deleteFileSpy).not.toHaveBeenCalled();
+
+    // 4. purgeMistakenUpload calls storage.remove([storagePath]) FIRST, then updates ONLY { deleted_at, purged_at } with .eq('storage_path')
+    callOrder.length = 0;
+    recordedChainCalls.eqCalls.length = 0;
+    recordedChainCalls.notCalls.length = 0;
+    recordedChainCalls.isCalls.length = 0;
+
+    await fileRepo.purgeMistakenUpload(fileId, storagePath);
+    expect(callOrder).toEqual(['storage.remove', 'db.update']);
+    expect(removeSpy).toHaveBeenLastCalledWith([storagePath]);
+    const mistakenPurgePayload = updateFileSpy.mock.calls[2]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(mistakenPurgePayload).sort()).toEqual([
+      'deleted_at',
+      'purged_at',
+    ]);
+    expect(recordedChainCalls.eqCalls).toEqual([
+      ['id', fileId],
+      ['storage_path', storagePath],
+    ]);
+    expect(recordedChainCalls.isCalls).toEqual([
+      ['deleted_at', null],
+      ['purged_at', null],
+    ]);
+    expect(fileSelectSpy).not.toHaveBeenCalled();
+    expect(deleteFileSpy).not.toHaveBeenCalled();
+
+    // 5. B-03: Silent storage denial `{ data: [], error: null }` AND storage error MUST throw sanitized error and NEVER update DB
+    const updatesBeforeB03 = updateFileSpy.mock.calls.length;
+
+    removeSpy.mockResolvedValueOnce({ data: [], error: null });
+    await expect(
+      fileRepo.purgeArchivedPatientFile(fileId, storagePath),
+    ).rejects.toThrow(
+      'Failed to purge archived clinical file from private storage',
+    );
+    expect(updateFileSpy).toHaveBeenCalledTimes(updatesBeforeB03);
+
+    removeSpy.mockResolvedValueOnce({ data: [], error: null });
+    await expect(
+      fileRepo.purgeMistakenUpload(fileId, storagePath),
+    ).rejects.toThrow(
+      'Failed to purge recent clinical file from private storage',
+    );
+    expect(updateFileSpy).toHaveBeenCalledTimes(updatesBeforeB03);
+
+    removeSpy.mockResolvedValueOnce({
+      data: null,
+      error: {
+        statusCode: '403',
+        message: `Denied deleting ${storagePath} (Layla_Private_Xray.jpg)`,
+      },
+    });
+    let archivedPurgeErr: Error | null = null;
+    try {
+      await fileRepo.purgeArchivedPatientFile(fileId, storagePath);
+    } catch (err) {
+      archivedPurgeErr = err as Error;
+    }
+    expect(archivedPurgeErr?.message).toBe(
+      'Failed to purge archived clinical file from private storage (code: 403)',
+    );
+    expect(archivedPurgeErr?.message).not.toContain(storagePath);
+    expect(archivedPurgeErr?.message).not.toContain('Layla_Private_Xray');
+    expect(updateFileSpy).toHaveBeenCalledTimes(updatesBeforeB03);
+
+    removeSpy.mockResolvedValueOnce({
+      data: null,
+      error: {
+        statusCode: '403',
+        message: `Denied deleting ${storagePath} (Secret_Bitewing.webp)`,
+      },
+    });
+    let mistakenPurgeErr: Error | null = null;
+    try {
+      await fileRepo.purgeMistakenUpload(fileId, storagePath);
+    } catch (err) {
+      mistakenPurgeErr = err as Error;
+    }
+    expect(mistakenPurgeErr?.message).toBe(
+      'Failed to purge recent clinical file from private storage (code: 403)',
+    );
+    expect(mistakenPurgeErr?.message).not.toContain(storagePath);
+    expect(mistakenPurgeErr?.message).not.toContain('Secret_Bitewing');
+    expect(updateFileSpy).toHaveBeenCalledTimes(updatesBeforeB03);
+  });
+
   it('never calls getPublicUrl anywhere in src/ (private Storage signed URLs only)', () => {
     const srcRoot = path.resolve(process.cwd(), 'src');
     const currentTestFile = path.resolve(

@@ -23,6 +23,7 @@ import { PatientFilesSection } from '@/features/patients/PatientFilesSection';
 import { PatientForm } from '@/features/patients/PatientForm';
 import { usePatientRepository } from '@/features/patients/PatientRepositoryContext';
 import { useI18n } from '@/i18n';
+import type { IImageOptimizer } from '@/services/media/imageOptimizer';
 import type { IPatientFileRepository } from '@/services/repositories/patientFileRepository';
 import type { IPatientRepository } from '@/services/repositories/patientRepository';
 import { EmptyState } from '@/ui/components/states/EmptyState';
@@ -41,11 +42,13 @@ import {
 export interface PatientDetailPageProps {
   readonly patientRepository?: IPatientRepository | null;
   readonly patientFileRepository?: IPatientFileRepository | null;
+  readonly imageOptimizer?: IImageOptimizer;
 }
 
 export function PatientDetailPage({
   patientRepository,
   patientFileRepository,
+  imageOptimizer,
 }: PatientDetailPageProps) {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
@@ -237,10 +240,10 @@ export function PatientDetailPage({
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <h1 className="min-w-0 max-w-full text-2xl font-bold tracking-tight text-text-primary break-words">
+            <h1 className="min-w-0 max-w-full text-xl sm:text-2xl font-bold tracking-tight text-text-primary break-words [overflow-wrap:anywhere]">
               {patient.fullName}
             </h1>
             {ageYears !== null ? (
@@ -254,7 +257,7 @@ export function PatientDetailPage({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {!isEditing ? (
             <Button
               type="button"
@@ -400,6 +403,7 @@ export function PatientDetailPage({
         clinicId={clinic.id}
         patientId={patient.id}
         patientFileRepository={patientFileRepository}
+        imageOptimizer={imageOptimizer}
       />
     </section>
   );

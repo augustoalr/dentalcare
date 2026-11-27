@@ -11,17 +11,20 @@ import { ClinicSettingsPage } from '@/features/settings/ClinicSettingsPage';
 import { ClinicShell } from '@/features/shell/ClinicShell';
 import { SectionPlaceholderPage } from '@/features/shell/SectionPlaceholderPage';
 import { I18nProvider } from '@/i18n';
+import type { IImageOptimizer } from '@/services/media/imageOptimizer';
 import type { IPatientFileRepository } from '@/services/repositories/patientFileRepository';
 import type { IPatientRepository } from '@/services/repositories/patientRepository';
 
 export interface AppRoutesProps {
   readonly patientRepository?: IPatientRepository | null;
   readonly patientFileRepository?: IPatientFileRepository | null;
+  readonly imageOptimizer?: IImageOptimizer;
 }
 
 export function AppRoutes({
   patientRepository,
   patientFileRepository,
+  imageOptimizer,
 }: AppRoutesProps = {}) {
   const navItems = getNavigationItems();
 
@@ -56,7 +59,10 @@ export function AppRoutes({
                 }
               />
             ))}
-            <Route path="/patients/:patientId" element={<PatientDetailPage />} />
+            <Route
+              path="/patients/:patientId"
+              element={<PatientDetailPage imageOptimizer={imageOptimizer} />}
+            />
             <Route
               path="*"
               element={<Navigate to={DEFAULT_AUTHENTICATED_PATH} replace />}
