@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, Clock, FileText, UserRound } from 'lucide-react';
+import {
+  Calendar,
+  CalendarPlus,
+  Clock,
+  FileText,
+  UserRound,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   canEditClinicalNotes,
@@ -121,13 +127,23 @@ export function PatientAppointmentsSection({
           </CardDescription>
         </div>
 
-        <Link
-          to="/schedule"
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-card px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring self-start shrink-0"
-        >
-          <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>{t('schedule.patientSection.openScheduleLink')}</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2 self-start shrink-0">
+          <Link
+            to={`/schedule?newAppointment=1&patientId=${encodeURIComponent(patientId)}`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <CalendarPlus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>{t('schedule.patientSection.scheduleAppointmentLink')}</span>
+          </Link>
+
+          <Link
+            to="/schedule"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface-card px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>{t('schedule.patientSection.openScheduleLink')}</span>
+          </Link>
+        </div>
       </CardHeader>
 
       <CardContent>

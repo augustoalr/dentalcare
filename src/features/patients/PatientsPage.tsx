@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Archive,
+  CalendarPlus,
   CheckCircle2,
   Search,
   UserPlus,
   Users,
   X,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   filterPatientsByQuery,
   type ArchivedPatientRecord,
@@ -66,6 +68,8 @@ export function PatientsPage({ patientRepository }: PatientsPageProps) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [lastCreatedPatient, setLastCreatedPatient] =
+    useState<PatientRecord | null>(null);
   const [restoreSucceeded, setRestoreSucceeded] = useState(false);
 
   const activeRequestIdRef = useRef(0);
@@ -172,6 +176,7 @@ export function PatientsPage({ patientRepository }: PatientsPageProps) {
     setSearchQuery('');
     setIsCreateFormOpen(false);
     setRestoreSucceeded(false);
+    setLastCreatedPatient(created);
   };
 
   const handleRestorePatient = async (archived: ArchivedPatientRecord) => {
@@ -197,6 +202,7 @@ export function PatientsPage({ patientRepository }: PatientsPageProps) {
         restoredRecord,
       ]),
     );
+    setLastCreatedPatient(null);
     setRestoreSucceeded(true);
   };
 
@@ -296,6 +302,61 @@ export function PatientsPage({ patientRepository }: PatientsPageProps) {
             <Archive className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>{t('patients.tabs.archived')}</span>
           </button>
+        </div>
+      ) : null}
+
+      {lastCreatedPatient ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-col gap-3 rounded-lg border border-success-border bg-success-bg p-4 text-success-foreground sm:flex-row sm:items-start sm:justify-between"
+        >
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <CheckCircle2
+              className="mt-0.5 h-4 w-4 shrink-0 text-success"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1 space-y-1 text-xs">
+              <p className="font-semibold break-words">
+                {t('patients.createdBanner.title')}
+              </p>
+              <p className="text-success-foreground/90 break-words [overflow-wrap:anywhere]">
+                {t('patients.createdBanner.description').replace(
+                  '{name}',
+                  lastCreatedPatient.fullName,
+                )}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                <Link
+                  to={`/schedule?newAppointment=1&patientId=${encodeURIComponent(lastCreatedPatient.id)}`}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <CalendarPlus
+                    className="h-3.5 w-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span>{t('patients.quickScheduleButton')}</span>
+                </Link>
+                <Link
+                  to={`/patients/${lastCreatedPatient.id}`}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-success-border bg-surface-card px-3 text-xs font-medium text-text-primary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <span>{t('patients.createdBanner.viewChartLink')}</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label={t('patients.createdBanner.dismissAria')}
+            className="h-8 w-8 self-end p-0 text-success-foreground hover:bg-success/10 hover:text-success-foreground sm:self-start"
+            onClick={() => setLastCreatedPatient(null)}
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </Button>
         </div>
       ) : null}
 

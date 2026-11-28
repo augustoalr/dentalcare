@@ -15,6 +15,7 @@ import { I18nProvider } from '@/i18n';
 import en from '@/i18n/locales/en.json';
 import es from '@/i18n/locales/es.json';
 import type { IAuthService } from '@/services/auth/authService';
+import type { IAppointmentRepository } from '@/services/repositories/appointmentRepository';
 import type {
   ClinicSummary,
   IClinicAccessRepository,
@@ -205,6 +206,7 @@ function renderPatientsApp(options?: {
   seedPatients?: readonly PatientRecord[];
   seedArchivedPatients?: readonly ArchivedPatientRecord[];
   patientRepository?: IPatientRepository;
+  appointmentRepository?: IAppointmentRepository | null;
 }) {
   const locale = options?.initialLocale ?? 'en';
   const role = options?.role ?? 'dentist';
@@ -231,7 +233,10 @@ function renderPatientsApp(options?: {
           clinicAccessRepository={clinicRepository}
         >
           <MemoryRouter initialEntries={[options?.initialPath ?? '/patients']}>
-            <AppRoutes patientRepository={activePatientRepo} />
+            <AppRoutes
+              patientRepository={activePatientRepo}
+              appointmentRepository={options?.appointmentRepository}
+            />
           </MemoryRouter>
         </AuthProvider>
       </I18nProvider>,
@@ -772,5 +777,110 @@ describe('T-05 Patients UI & clinical alert flow', () => {
     const headerWrapper = detailHeading.closest('.flex-col');
     expect(headerWrapper).not.toBeNull();
     expect(headerWrapper?.className).toContain('sm:flex-row');
+  });
+
+  it('8. T-09: shows quick Schedule appointment banner after creating a patient and quick Schedule links in PatientDetailPage & PatientAppointmentsSection', async () => {
+    const user = userEvent.setup();
+    const listView = renderPatientsApp({ seedPatients: [] });
+
+    expect(
+      await listView.findByText(en.patients.empty.noPatientsTitle),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getAllByRole('button', { name: en.patients.newPatientButton })[0]!,
+    );
+    await user.type(
+      screen.getByLabelText(en.patients.form.fullNameLabel),
+      'Karim Synthetic QuickBook',
+    );
+    await user.type(
+      screen.getByLabelText(en.patients.form.phoneLabel),
+      '+971 50 444 5555',
+    );
+    await user.click(
+      screen.getByRole('button', { name: en.patients.form.createSubmitButton }),
+    );
+
+    const statusBanner = await screen.findByRole('status');
+    expect(statusBanner).toHaveTextContent(en.patients.createdBanner.title);
+    expect(statusBanner).toHaveTextContent('Karim Synthetic QuickBook');
+
+    const quickScheduleLink = within(statusBanner).getByRole('link', {
+      name: en.patients.quickScheduleButton,
+    });
+    expect(quickScheduleLink).toHaveAttribute(
+      'href',
+      '/schedule?newAppointment=1&patientId=synthetic-patient-1',
+    );
+
+    const viewChartLink = within(statusBanner).getByRole('link', {
+      name: en.patients.createdBanner.viewChartLink,
+    });
+    expect(viewChartLink).toHaveAttribute(
+      'href',
+      '/patients/synthetic-patient-1',
+    );
+
+    // Dismissing the banner removes it cleanly
+    await user.click(
+      within(statusBanner).getByRole('button', {
+        name: en.patients.createdBanner.dismissAria,
+      }),
+    );
+    expect(
+      screen.queryByText(en.patients.createdBanner.title),
+    ).not.toBeInTheDocument();
+    listView.unmount();
+
+    // PatientDetailPage header + PatientAppointmentsSection both provide quick Schedule appointment links
+    const mockApptRepo: IAppointmentRepository = {
+      listClinicProviders: vi.fn().mockResolvedValue([]),
+      listAppointmentsByRange: vi.fn().mockResolvedValue([]),
+      listAppointmentsByPatient: vi.fn().mockResolvedValue([]),
+      listArchivedAppointments: vi.fn().mockResolvedValue([]),
+      createAppointment: vi.fn(),
+      updateAppointment: vi.fn(),
+      updateAppointmentStatus: vi.fn(),
+      updateClinicalNotes: vi.fn(),
+      markReminderSent: vi.fn(),
+      archiveAppointment: vi.fn(),
+      restoreAppointment: vi.fn(),
+    };
+
+    renderPatientsApp({
+      initialPath: '/patients/pat-quick-1',
+      seedPatients: [
+        Object.freeze({
+          id: 'pat-quick-1',
+          clinicId: SYNTHETIC_CLINIC.id,
+          fullName: 'Karim Synthetic QuickBook',
+          phone: '+971 50 444 5555',
+          email: null,
+          dateOfBirth: null,
+          medicalAlerts: null,
+          generalNotes: null,
+          createdAt: '2026-11-26T08:00:00Z',
+          updatedAt: '2026-11-26T08:00:00Z',
+        }),
+      ],
+      appointmentRepository: mockApptRepo,
+    });
+
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'Karim Synthetic QuickBook',
+    });
+
+    const scheduleLinks = screen.getAllByRole('link', {
+      name: en.patients.quickScheduleButton,
+    });
+    expect(scheduleLinks).toHaveLength(2);
+    for (const link of scheduleLinks) {
+      expect(link).toHaveAttribute(
+        'href',
+        '/schedule?newAppointment=1&patientId=pat-quick-1',
+      );
+    }
   });
 });

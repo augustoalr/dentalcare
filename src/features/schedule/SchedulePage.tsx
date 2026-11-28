@@ -9,6 +9,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import {
   APPOINTMENT_STATUSES,
   canEditClinicalNotes,
@@ -31,17 +32,21 @@ import {
   type ClinicProvider,
 } from '@/domain/appointments';
 import type { PatientRecord } from '@/domain/patients';
+import { buildSafeAppointmentReminderPayload } from '@/domain/whatsapp';
 import { useAuth } from '@/features/auth/AuthContext';
 import { usePatientRepository } from '@/features/patients/PatientRepositoryContext';
 import { AppointmentCard } from '@/features/schedule/AppointmentCard';
 import { AppointmentForm } from '@/features/schedule/AppointmentForm';
+import type { SendReminderOutcome } from '@/features/schedule/AppointmentReminderControls';
 import { useAppointmentRepository } from '@/features/schedule/AppointmentRepositoryContext';
 import { ArchivedAppointmentCard } from '@/features/schedule/ArchivedAppointmentCard';
 import { getAppointmentStatusLabelKey } from '@/features/schedule/scheduleI18n';
 import { TodaySummaryPanel } from '@/features/schedule/TodaySummaryPanel';
+import { useWhatsAppService } from '@/features/schedule/WhatsAppServiceContext';
 import { useI18n, type TranslationKey } from '@/i18n';
 import type { IAppointmentRepository } from '@/services/repositories/appointmentRepository';
 import type { IPatientRepository } from '@/services/repositories/patientRepository';
+import type { IWhatsAppService } from '@/services/whatsapp/whatsappService';
 import { EmptyState } from '@/ui/components/states/EmptyState';
 import { ErrorState } from '@/ui/components/states/ErrorState';
 import { LoadingState } from '@/ui/components/states/LoadingState';
@@ -53,6 +58,7 @@ import { Select } from '@/ui/components/ui/select';
 export interface SchedulePageProps {
   readonly appointmentRepository?: IAppointmentRepository | null;
   readonly patientRepository?: IPatientRepository | null;
+  readonly whatsappService?: IWhatsAppService;
   readonly nowProvider?: () => Date;
 }
 
@@ -64,6 +70,7 @@ type FeedbackKind =
   | 'updated'
   | 'status_updated'
   | 'notes_saved'
+  | 'reminder_sent'
   | 'archived'
   | 'restored';
 
@@ -88,6 +95,10 @@ const FEEDBACK_KEYS: Readonly<
   notes_saved: {
     title: 'schedule.feedback.notesSavedTitle',
     description: 'schedule.feedback.notesSavedDescription',
+  },
+  reminder_sent: {
+    title: 'schedule.feedback.reminderSentTitle',
+    description: 'schedule.feedback.reminderSentDescription',
   },
   archived: {
     title: 'schedule.feedback.archivedTitle',
@@ -117,12 +128,15 @@ function defaultNowProvider(): Date {
 export function SchedulePage({
   appointmentRepository,
   patientRepository,
+  whatsappService: overrideWhatsAppService,
   nowProvider = defaultNowProvider,
 }: SchedulePageProps) {
   const { status: authStatus, clinic, profile } = useAuth();
   const { locale, t } = useI18n();
+  const [searchParams, setSearchParams] = useSearchParams();
   const appointmentRepo = useAppointmentRepository(appointmentRepository);
   const patientRepo = usePatientRepository(patientRepository);
+  const whatsappService = useWhatsAppService(overrideWhatsAppService);
 
   const safeTimezone = resolveSafeTimezone(clinic?.timezone ?? 'UTC');
   const todayDateKey = getDateKeyInTimezone(nowProvider(), safeTimezone);
@@ -160,6 +174,9 @@ export function SchedulePage({
   const [hasArchivedLoadError, setHasArchivedLoadError] = useState(false);
 
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [preselectedPatientId, setPreselectedPatientId] = useState<
+    string | undefined
+  >(undefined);
   const [editingAppointment, setEditingAppointment] =
     useState<AppointmentRecord | null>(null);
   const [feedback, setFeedback] = useState<FeedbackKind>('none');
@@ -323,6 +340,48 @@ export function SchedulePage({
     [patients],
   );
 
+  const shouldOpenNewAppointmentFromUrl =
+    searchParams.get('newAppointment') === '1';
+  const requestedPatientIdFromUrl = searchParams.get('patientId')?.trim() ?? '';
+
+  useEffect(() => {
+    if (
+      !shouldOpenNewAppointmentFromUrl ||
+      isLoadingSchedule ||
+      hasLoadError ||
+      !clinicId ||
+      !profile ||
+      !appointmentRepo ||
+      !patientRepo
+    ) {
+      return;
+    }
+
+    // Never blindly trust a URL UUID: preselect only if the patient exists in this clinic's active list
+    const validatedPatientId =
+      requestedPatientIdFromUrl.length > 0 &&
+      patientsById.has(requestedPatientIdFromUrl)
+        ? requestedPatientIdFromUrl
+        : undefined;
+
+    setActiveTab('active');
+    setEditingAppointment(null);
+    setPreselectedPatientId(validatedPatientId);
+    setIsCreateFormOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [
+    appointmentRepo,
+    clinicId,
+    hasLoadError,
+    isLoadingSchedule,
+    patientRepo,
+    patientsById,
+    profile,
+    requestedPatientIdFromUrl,
+    setSearchParams,
+    shouldOpenNewAppointmentFromUrl,
+  ]);
+
   const providersById = useMemo(
     () => new Map(providers.map((provider) => [provider.id, provider])),
     [providers],
@@ -442,7 +501,12 @@ export function SchedulePage({
           className="self-start shrink-0"
           onClick={() => {
             setEditingAppointment(null);
-            setIsCreateFormOpen((prev) => !prev);
+            setIsCreateFormOpen((prev) => {
+              if (prev) {
+                setPreselectedPatientId(undefined);
+              }
+              return !prev;
+            });
           }}
         >
           {isCreateFormOpen ? (
@@ -490,6 +554,7 @@ export function SchedulePage({
       includeClinicalNotes,
     });
     setIsCreateFormOpen(false);
+    setPreselectedPatientId(undefined);
     setEditingAppointment(null);
     setFeedback('created');
     await loadScheduleData();
@@ -563,6 +628,65 @@ export function SchedulePage({
       ),
     );
     setFeedback('notes_saved');
+  };
+
+  const applyUpdatedAppointment = (updated: AppointmentRecord) => {
+    setRangeAppointments((prev) =>
+      sortAppointmentsAsc(
+        prev.map((item) => (item.id === updated.id ? updated : item)),
+      ),
+    );
+    setTodayAppointments((prev) =>
+      sortAppointmentsAsc(
+        prev.map((item) => (item.id === updated.id ? updated : item)),
+      ),
+    );
+  };
+
+  const handleSendWhatsAppReminder = async (
+    appointment: AppointmentRecord,
+  ): Promise<SendReminderOutcome> => {
+    const patient = patientsById.get(appointment.patientId);
+    // STRICT PRIVACY: buildSafeAppointmentReminderPayload ONLY accepts non-clinical allow-listed fields
+    const payload = buildSafeAppointmentReminderPayload({
+      patientFullName: patient?.fullName ?? '',
+      patientPhone: patient?.phone,
+      clinicName: clinic.name,
+      startsAtIso: appointment.startsAt,
+      timezone: safeTimezone,
+      locale,
+    });
+
+    if (!payload) {
+      return Object.freeze({ status: 'invalid' });
+    }
+
+    // Launch WhatsApp FIRST (synchronously inside adapter) to preserve mobile user gesture
+    const sendResult = await whatsappService.sendAppointmentReminder(payload);
+
+    if (sendResult.popupBlocked) {
+      return Object.freeze({
+        status: 'popup_blocked',
+        launchedUrl: sendResult.launchedUrl,
+      });
+    }
+
+    const updated = await appointmentRepo.markReminderSent(appointment.id, {
+      includeClinicalNotes,
+    });
+    applyUpdatedAppointment(updated);
+    setFeedback('reminder_sent');
+    return Object.freeze({ status: 'sent' });
+  };
+
+  const handleConfirmManualReminderOpen = async (
+    appointment: AppointmentRecord,
+  ): Promise<void> => {
+    const updated = await appointmentRepo.markReminderSent(appointment.id, {
+      includeClinicalNotes,
+    });
+    applyUpdatedAppointment(updated);
+    setFeedback('reminder_sent');
   };
 
   const handleArchiveAppointment = async (appointment: AppointmentRecord) => {
@@ -718,21 +842,27 @@ export function SchedulePage({
             summary={todaySummary}
             patientsById={patientsById}
             providersById={providersById}
+            onSendReminder={handleSendWhatsAppReminder}
+            onConfirmManualReminder={handleConfirmManualReminderOpen}
           />
 
           {isCreateFormOpen ? (
             <AppointmentForm
-              key={`create-${selectedDateKey}`}
+              key={`create-${selectedDateKey}-${preselectedPatientId ?? 'default'}`}
               mode="create"
               timezone={safeTimezone}
               role={profile.role}
               defaultDateKey={selectedDateKey}
+              defaultPatientId={preselectedPatientId}
               patients={patients}
               providers={providers}
               existingAppointments={knownActiveAppointments}
               onDateKeyChange={(dk) => void handleFormDateKeyChange(dk)}
               onSubmit={handleCreateAppointment}
-              onCancel={() => setIsCreateFormOpen(false)}
+              onCancel={() => {
+                setIsCreateFormOpen(false);
+                setPreselectedPatientId(undefined);
+              }}
             />
           ) : null}
 
@@ -952,8 +1082,11 @@ export function SchedulePage({
                   onSaveClinicalNotes={
                     includeClinicalNotes ? handleSaveClinicalNotes : undefined
                   }
+                  onSendReminder={handleSendWhatsAppReminder}
+                  onConfirmManualReminder={handleConfirmManualReminderOpen}
                   onEdit={(selected) => {
                     setIsCreateFormOpen(false);
+                    setPreselectedPatientId(undefined);
                     setEditingAppointment(selected);
                   }}
                   onArchive={handleArchiveAppointment}
@@ -1007,8 +1140,13 @@ export function SchedulePage({
                                 ? handleSaveClinicalNotes
                                 : undefined
                             }
+                            onSendReminder={handleSendWhatsAppReminder}
+                            onConfirmManualReminder={
+                              handleConfirmManualReminderOpen
+                            }
                             onEdit={(selected) => {
                               setIsCreateFormOpen(false);
+                              setPreselectedPatientId(undefined);
                               setEditingAppointment(selected);
                             }}
                             onArchive={handleArchiveAppointment}

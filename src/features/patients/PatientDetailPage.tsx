@@ -3,6 +3,7 @@ import {
   Archive,
   ArrowLeft,
   Calendar,
+  CalendarPlus,
   CheckCircle2,
   FileText,
   Mail,
@@ -262,6 +263,14 @@ export function PatientDetailPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Link
+            to={`/schedule?newAppointment=1&patientId=${encodeURIComponent(patient.id)}`}
+            className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <CalendarPlus className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{t('patients.quickScheduleButton')}</span>
+          </Link>
+
           {!isEditing ? (
             <Button
               type="button"
