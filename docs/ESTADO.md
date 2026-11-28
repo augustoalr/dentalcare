@@ -1,10 +1,10 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-28 11:45 GST por Manager (Corrección B-02b `COALESCE` en prompt T-08)
+Última actualización: 2026-11-28 11:55 GST por Manager (Inicio Coder T-08 tras APTO del Revisor en `fb607b7`)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-08` — Agenda de Citas + Notas Clínicas por Visita + Panel del Día (`[DELICADA]`, prompt `docs/prompts/T-08.md` en revisión por `Revisor T-08` antes de entregarse al Coder, R-02)
+- En curso: `T-08` — Agenda de Citas + Notas Clínicas por Visita + Panel del Día (`[DELICADA]`, prompt `APTO` por el Revisor en `fb607b7`, entregado al Coder `T-08 agenda-citas-notas`)
 - Bloqueado por el humano: Ninguno (`dentalcare-dev` tiene migraciones `T-02`–`T-07` aplicadas + cuentas sintéticas listas)
 - Próxima tarea propuesta: `T-09` — Recordatorios de Cita por WhatsApp (`IWhatsAppService` + `wa.me`, tras fusionar `T-08`)
 
@@ -20,7 +20,7 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-06 Archivos clínicos privados | T-06 archivos-privados | `t-06-archivos-privados` | — (en serie) | #20 | ✅ Fusionada | 2026-11-26 | 2026-11-27 (`2e864a1`) | 1 (PR) / 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `0e2a5e23`; preview en vivo + bucket privado + `patient_file.archived` sin PII en `dentalcare-dev`: PASÓ |
 | T-06b Archivados, purga espacio (admin + 15 min), optimización y móvil | T-06b archivados-purga-movil | `t-06b-archivados-purga-movil` | — (en serie) | #26 | ✅ Fusionada | 2026-11-27 | 2026-11-27 (`48e5051`) | 2 (PR) / 2 (prompt) | 4 (3 en prompt: B-01/B-02/B-03; 1 en PR: orden rollback `README`) | `[DELICADA]` Revisor `APROBADO` en `b9c0757a`; preview móvil/escritorio + `restored`/`purged` sin PII en `dentalcare-dev`: PASÓ |
 | T-07 Catálogo de tratamientos | T-07 catalogo-tratamientos | `t-07-catalogo-tratamientos` | — (en serie) | #30 | ✅ Fusionada | 2026-11-27 | 2026-11-28 (`9d6dc99`) | 1 (PR) / 2 (prompt) | 1 (en prompt: B-01 archivado puro; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `4cdafb4d`; preview móvil/escritorio + 4 eventos `treatment.*` en `dentalcare-dev`: PASÓ |
-| T-08 Agenda + Notas + Panel del día | Revisor T-08 | `main` (prompt) | — (en serie) | — | 🔍 En revisión | 2026-11-28 | | 3 (prompt) | 6 (en prompt: B-01..B-05 + B-02b `COALESCE` atrapados por Revisor) | `[DELICADA]` Prompt `docs/prompts/T-08.md` corregido (`COALESCE` PG 17), en 3.ª validación por Revisor antes de Coder (R-02) |
+| T-08 Agenda + Notas + Panel del día | T-08 agenda-citas-notas | `t-08-agenda-citas-notas` | — (en serie) | — | 🛠️ En curso | 2026-11-28 | | 3 (prompt) | 6 (en prompt: B-01..B-05 + B-02b `COALESCE` atrapados por Revisor) | `[DELICADA]` Prompt `APTO` por Revisor (`fb607b7`), en manos del Coder |
 | T-09 Recordatorios WhatsApp (`wa.me`) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | Depende de T-08 |
 | T-09b Modo bimoneda (USD + Bs. + tasa del día) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Decisión Opción A de Augusto; antes de T-10 y T-11 |
 | T-10 Presupuestos exactos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05, T-07, T-09b |
