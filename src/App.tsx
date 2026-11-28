@@ -10,20 +10,25 @@ import { PatientsPage } from '@/features/patients/PatientsPage';
 import { ClinicSettingsPage } from '@/features/settings/ClinicSettingsPage';
 import { ClinicShell } from '@/features/shell/ClinicShell';
 import { SectionPlaceholderPage } from '@/features/shell/SectionPlaceholderPage';
+import { TreatmentRepositoryProvider } from '@/features/treatments/TreatmentRepositoryContext';
+import { TreatmentsPage } from '@/features/treatments/TreatmentsPage';
 import { I18nProvider } from '@/i18n';
 import type { IImageOptimizer } from '@/services/media/imageOptimizer';
 import type { IPatientFileRepository } from '@/services/repositories/patientFileRepository';
 import type { IPatientRepository } from '@/services/repositories/patientRepository';
+import type { ITreatmentRepository } from '@/services/repositories/treatmentRepository';
 
 export interface AppRoutesProps {
   readonly patientRepository?: IPatientRepository | null;
   readonly patientFileRepository?: IPatientFileRepository | null;
+  readonly treatmentRepository?: ITreatmentRepository | null;
   readonly imageOptimizer?: IImageOptimizer;
 }
 
 export function AppRoutes({
   patientRepository,
   patientFileRepository,
+  treatmentRepository,
   imageOptimizer,
 }: AppRoutesProps = {}) {
   const navItems = getNavigationItems();
@@ -31,44 +36,48 @@ export function AppRoutes({
   return (
     <PatientRepositoryProvider repository={patientRepository}>
       <PatientFileRepositoryProvider repository={patientFileRepository}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            element={
-              <ProtectedRoute>
-                <ClinicShell />
-              </ProtectedRoute>
-            }
-          >
+        <TreatmentRepositoryProvider repository={treatmentRepository}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
             <Route
-              index
-              element={<Navigate to={DEFAULT_AUTHENTICATED_PATH} replace />}
-            />
-            {navItems.map((item) => (
+              element={
+                <ProtectedRoute>
+                  <ClinicShell />
+                </ProtectedRoute>
+              }
+            >
               <Route
-                key={item.id}
-                path={item.path}
-                element={
-                  item.id === 'patients' ? (
-                    <PatientsPage />
-                  ) : item.id === 'settings' ? (
-                    <ClinicSettingsPage />
-                  ) : (
-                    <SectionPlaceholderPage sectionId={item.id} />
-                  )
-                }
+                index
+                element={<Navigate to={DEFAULT_AUTHENTICATED_PATH} replace />}
               />
-            ))}
-            <Route
-              path="/patients/:patientId"
-              element={<PatientDetailPage imageOptimizer={imageOptimizer} />}
-            />
-            <Route
-              path="*"
-              element={<Navigate to={DEFAULT_AUTHENTICATED_PATH} replace />}
-            />
-          </Route>
-        </Routes>
+              {navItems.map((item) => (
+                <Route
+                  key={item.id}
+                  path={item.path}
+                  element={
+                    item.id === 'patients' ? (
+                      <PatientsPage />
+                    ) : item.id === 'treatments' ? (
+                      <TreatmentsPage />
+                    ) : item.id === 'settings' ? (
+                      <ClinicSettingsPage />
+                    ) : (
+                      <SectionPlaceholderPage sectionId={item.id} />
+                    )
+                  }
+                />
+              ))}
+              <Route
+                path="/patients/:patientId"
+                element={<PatientDetailPage imageOptimizer={imageOptimizer} />}
+              />
+              <Route
+                path="*"
+                element={<Navigate to={DEFAULT_AUTHENTICATED_PATH} replace />}
+              />
+            </Route>
+          </Routes>
+        </TreatmentRepositoryProvider>
       </PatientFileRepositoryProvider>
     </PatientRepositoryProvider>
   );

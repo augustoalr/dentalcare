@@ -7,6 +7,10 @@ import { SupabaseClinicAccessRepository } from '@/services/repositories/clinicAc
 import { SupabasePatientFileRepository } from '@/services/repositories/patientFileRepository';
 import { SupabasePatientRepository } from '@/services/repositories/patientRepository';
 import {
+  isDuplicateTreatmentCodeError,
+  SupabaseTreatmentRepository,
+} from '@/services/repositories/treatmentRepository';
+import {
   createSupabaseClient,
   getSupabaseClient,
   resetSupabaseClientForTests,
@@ -965,6 +969,185 @@ describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
     expect(mistakenPurgeErr?.message).not.toContain(storagePath);
     expect(mistakenPurgeErr?.message).not.toContain('Secret_Bitewing');
     expect(updateFileSpy).toHaveBeenCalledTimes(updatesBeforeB03);
+  });
+
+  it('enforces least-privilege payloads, pure archive/restore without .select()/.delete(), safe 23505 propagation, and defensive row validation in SupabaseTreatmentRepository (T-07)', async () => {
+    const sampleRow = {
+      id: 'treatment-1',
+      clinic_id: 'clinic-1',
+      code: 'CLEAN-01',
+      name_en: 'Dental Prophylaxis',
+      name_es: 'Limpieza Dental',
+      category: 'preventive',
+      default_price_cents: 15_050,
+      default_duration_min: 45,
+      is_active: true,
+      created_at: '2026-11-27T08:00:00Z',
+      updated_at: '2026-11-27T08:00:00Z',
+      deleted_at: null,
+    };
+
+    const insertSingleSpy = vi
+      .fn()
+      .mockResolvedValue({ data: sampleRow, error: null });
+    const insertSelectSpy = vi.fn().mockReturnValue({ single: insertSingleSpy });
+    const insertSpy = vi.fn().mockReturnValue({ select: insertSelectSpy });
+
+    const updateSingleSpy = vi
+      .fn()
+      .mockResolvedValue({ data: sampleRow, error: null });
+    const updateSelectSpy = vi.fn().mockReturnValue({ single: updateSingleSpy });
+
+    const archiveOrRestoreSelectSpy = vi.fn();
+    let updateMode: 'edit' | 'archive' | 'restore' = 'edit';
+
+    const makeNoSelectTerminal = () => {
+      const promise = Promise.resolve({ data: null, error: null }) as Promise<{
+        data: null;
+        error: null;
+      }> & { select: typeof archiveOrRestoreSelectSpy };
+      promise.select = archiveOrRestoreSelectSpy;
+      return promise;
+    };
+
+    const isSpy = vi.fn().mockImplementation(() => {
+      if (updateMode === 'archive') {
+        return makeNoSelectTerminal();
+      }
+      return { select: updateSelectSpy };
+    });
+
+    const notSpy = vi.fn().mockImplementation(() => makeNoSelectTerminal());
+    const eqSpy = vi.fn().mockImplementation(() => ({
+      is: isSpy,
+      not: notSpy,
+    }));
+    const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy });
+    const deleteSpy = vi.fn();
+    const fromSpy = vi.fn().mockReturnValue({
+      insert: insertSpy,
+      update: updateSpy,
+      delete: deleteSpy,
+    });
+
+    const repo = new SupabaseTreatmentRepository({
+      from: fromSpy,
+    } as unknown as DentalCareSupabaseClient);
+
+    const input = {
+      code: 'CLEAN-01',
+      nameEn: 'Dental Prophylaxis',
+      nameEs: 'Limpieza Dental',
+      category: 'preventive' as const,
+      defaultPriceCents: 15_050,
+      defaultDurationMin: 45,
+      isActive: true,
+    };
+
+    // 1. createTreatment sends ONLY clinic_id + 7 business columns
+    const created = await repo.createTreatment('clinic-1', input);
+    expect(fromSpy).toHaveBeenCalledWith('treatments_catalog');
+    const insertPayload = insertSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(insertPayload).sort()).toEqual([
+      'category',
+      'clinic_id',
+      'code',
+      'default_duration_min',
+      'default_price_cents',
+      'is_active',
+      'name_en',
+      'name_es',
+    ]);
+    expect(insertPayload).not.toHaveProperty('id');
+    expect(insertPayload).not.toHaveProperty('created_at');
+    expect(insertPayload).not.toHaveProperty('updated_at');
+    expect(insertPayload).not.toHaveProperty('deleted_at');
+    expect(Object.isFrozen(created)).toBe(true);
+
+    // 2. updateTreatment sends ONLY the 7 editable columns
+    updateMode = 'edit';
+    await repo.updateTreatment('treatment-1', input);
+    const editPayload = updateSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(editPayload).sort()).toEqual([
+      'category',
+      'code',
+      'default_duration_min',
+      'default_price_cents',
+      'is_active',
+      'name_en',
+      'name_es',
+    ]);
+    expect(editPayload).not.toHaveProperty('id');
+    expect(editPayload).not.toHaveProperty('clinic_id');
+    expect(editPayload).not.toHaveProperty('created_at');
+    expect(editPayload).not.toHaveProperty('updated_at');
+    expect(editPayload).not.toHaveProperty('deleted_at');
+
+    // 3. archiveTreatment sends ONLY { deleted_at } without .select() or .delete()
+    updateMode = 'archive';
+    await repo.archiveTreatment('treatment-1');
+    const archivePayload = updateSpy.mock.calls[1]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(archivePayload)).toEqual(['deleted_at']);
+    expect(typeof archivePayload.deleted_at).toBe('string');
+    expect(archiveOrRestoreSelectSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
+
+    // 4. restoreTreatment sends ONLY { deleted_at: null } without .select() or .delete()
+    updateMode = 'restore';
+    await repo.restoreTreatment('treatment-1');
+    const restorePayload = updateSpy.mock.calls[2]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(restorePayload).toEqual({ deleted_at: null });
+    expect(Object.keys(restorePayload)).toEqual(['deleted_at']);
+    expect(notSpy).toHaveBeenCalledWith('deleted_at', 'is', null);
+    expect(archiveOrRestoreSelectSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
+
+    // 5. Propagates code 23505 safely without leaking raw PostgreSQL error details
+    insertSingleSpy.mockResolvedValueOnce({
+      data: null,
+      error: {
+        code: '23505',
+        message:
+          'duplicate key value violates unique constraint "idx_treatments_catalog_clinic_code_active" Key (clinic_id, code)=(clinic-1, CLEAN-01) already exists',
+      },
+    });
+
+    let dupErr: Error | null = null;
+    try {
+      await repo.createTreatment('clinic-1', input);
+    } catch (err) {
+      dupErr = err as Error;
+    }
+    expect(dupErr).not.toBeNull();
+    expect(dupErr?.message).toBe(
+      'Failed to create treatment record (code: 23505)',
+    );
+    expect(dupErr?.message).not.toContain('idx_treatments_catalog');
+    expect(dupErr?.message).not.toContain('clinic-1');
+    expect(isDuplicateTreatmentCodeError(dupErr)).toBe(true);
+
+    // 6. Defensive row mapping rejects invalid category or unsafe/out-of-range prices
+    insertSingleSpy.mockResolvedValueOnce({
+      data: { ...sampleRow, category: 'unknown_category' },
+      error: null,
+    });
+    await expect(repo.createTreatment('clinic-1', input)).rejects.toThrow(
+      'Invalid treatment category received from database',
+    );
+
+    insertSingleSpy.mockResolvedValueOnce({
+      data: { ...sampleRow, default_price_cents: 100_000_000_000 },
+      error: null,
+    });
+    await expect(repo.createTreatment('clinic-1', input)).rejects.toThrow(
+      'Invalid treatment price received from database',
+    );
   });
 
   it('never calls getPublicUrl anywhere in src/ (private Storage signed URLs only)', () => {

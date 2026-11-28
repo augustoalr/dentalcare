@@ -1,5 +1,6 @@
 import type { SupportedLocale } from '@/domain/locale';
 import type { AllowedPatientFileMimeType } from '@/domain/patientFiles';
+import type { TreatmentCategory } from '@/domain/treatments';
 
 export type Json =
   | string
@@ -161,6 +162,48 @@ export type PatientFileUpdate = {
   purged_at?: string | null;
 };
 
+export type TreatmentCatalogRow = {
+  id: string;
+  clinic_id: string;
+  code: string;
+  name_en: string;
+  name_es: string;
+  category: string;
+  default_price_cents: number;
+  default_duration_min: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type TreatmentCatalogInsert = {
+  id?: string;
+  clinic_id: string;
+  code: string;
+  name_en: string;
+  name_es: string;
+  category: TreatmentCategory;
+  default_price_cents: number;
+  default_duration_min?: number;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null;
+};
+
+export type TreatmentCatalogUpdate = {
+  code?: string;
+  name_en?: string;
+  name_es?: string;
+  category?: TreatmentCategory;
+  default_price_cents?: number;
+  default_duration_min?: number;
+  is_active?: boolean;
+  updated_at?: string;
+  deleted_at?: string | null;
+};
+
 export type AuditLogRow = {
   id: string;
   clinic_id: string;
@@ -238,6 +281,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'patients';
             referencedColumns: ['clinic_id', 'id'];
+          },
+        ];
+      };
+      treatments_catalog: {
+        Row: TreatmentCatalogRow;
+        Insert: TreatmentCatalogInsert;
+        Update: TreatmentCatalogUpdate;
+        Relationships: [
+          {
+            foreignKeyName: 'treatments_catalog_clinic_id_fkey';
+            columns: ['clinic_id'];
+            isOneToOne: false;
+            referencedRelation: 'clinics';
+            referencedColumns: ['id'];
           },
         ];
       };

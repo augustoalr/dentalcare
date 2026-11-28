@@ -441,5 +441,152 @@
         }
       }
     }
+  },
+  "treatments": {
+    "title": "Catálogo de tratamientos",
+    "description": "Procedimientos dentales estándar en inglés y español con precios exactos en céntimos y duración habitual por cita.",
+    "adminBadge": "Editable por administración",
+    "readOnlyBadge": "Catálogo de solo lectura",
+    "readOnlyTitle": "Catálogo en modo de solo lectura",
+    "readOnlyDescription": "Solo un Administrador de la clínica puede crear, editar, archivar o restaurar tratamientos. Puedes buscar procedimientos, filtrar por categoría y consultar precios estándar abajo.",
+    "countSingle": "1 tratamiento",
+    "countPlural": "{count} tratamientos",
+    "archivedCountSingle": "1 tratamiento archivado",
+    "archivedCountPlural": "{count} tratamientos archivados",
+    "newTreatmentButton": "Nuevo tratamiento",
+    "closeFormButton": "Cerrar formulario",
+    "unconfiguredTitle": "Catálogo de tratamientos no disponible",
+    "unconfiguredDescription": "Configura las variables públicas de entorno de Supabase para cargar y gestionar el catálogo de tratamientos de tu clínica.",
+    "tabs": {
+      "ariaLabel": "Vista del catálogo de tratamientos",
+      "active": "Activos",
+      "archived": "Archivados"
+    },
+    "categories": {
+      "all": "Todas las categorías",
+      "preventive": "Preventiva",
+      "restorative": "Restauradora",
+      "endodontics": "Endodoncia",
+      "periodontics": "Periodoncia",
+      "orthodontics": "Ortodoncia",
+      "surgery": "Cirugía oral",
+      "prosthetics": "Prótesis",
+      "diagnostics": "Diagnóstico",
+      "aesthetics": "Estética",
+      "other": "Otros"
+    },
+    "filters": {
+      "searchLabel": "Buscar tratamientos",
+      "searchPlaceholder": "Buscar por código o nombre (EN / ES)…",
+      "categoryLabel": "Categoría",
+      "includeInactiveLabel": "Mostrar tratamientos pausados",
+      "hiddenPausedHint": "Hay {count} tratamiento(s) pausado(s) oculto(s) actualmente.",
+      "clearButton": "Limpiar filtros",
+      "resultsCount": "Mostrando {shown} de {total}"
+    },
+    "status": {
+      "active": "Activo",
+      "paused": "Pausado",
+      "archived": "Archivado"
+    },
+    "card": {
+      "durationMinutes": "{minutes} min",
+      "editButton": "Editar",
+      "archiveButton": "Archivar",
+      "archivedOn": "Archivado el {date}",
+      "restoreButton": "Restaurar tratamiento",
+      "archiveConfirm": {
+        "title": "¿Archivar este tratamiento?",
+        "description": "El tratamiento dejará de aparecer en el catálogo activo sin alterar documentos pasados, y el evento quedará anotado en la auditoría.",
+        "confirmButton": "Confirmar archivado",
+        "archivingButton": "Archivando…",
+        "cancelButton": "Mantener en catálogo",
+        "errorTitle": "No se pudo archivar el tratamiento",
+        "errorDescription": "No pudimos archivar este tratamiento en este momento. Inténtalo de nuevo."
+      },
+      "restoreConfirm": {
+        "title": "¿Restaurar este tratamiento archivado?",
+        "description": "El tratamiento volverá al catálogo activo de tu clínica y la restauración quedará registrada en la auditoría.",
+        "confirmButton": "Confirmar restauración",
+        "restoringButton": "Restaurando…",
+        "cancelButton": "Mantener archivado",
+        "errorTitle": "No se pudo restaurar el tratamiento",
+        "errorDescription": "No pudimos restaurar este tratamiento en este momento. Inténtalo de nuevo.",
+        "duplicateCodeError": "Ya existe otro tratamiento activo en tu clínica con este código. Edita o archiva el activo antes de restaurar este registro."
+      }
+    },
+    "feedback": {
+      "createdTitle": "Tratamiento añadido al catálogo",
+      "createdDescription": "El nuevo procedimiento ya está disponible en el catálogo de tu clínica y registrado en la auditoría.",
+      "updatedTitle": "Tratamiento actualizado",
+      "updatedDescription": "Los cambios se han guardado correctamente y quedaron registrados en la auditoría.",
+      "archivedTitle": "Tratamiento archivado",
+      "archivedDescription": "El tratamiento pasó a la pestaña Archivados y quedó anotado en la auditoría.",
+      "restoredTitle": "Tratamiento restaurado",
+      "restoredDescription": "El tratamiento vuelve a estar disponible en el catálogo y quedó anotado en la auditoría."
+    },
+    "empty": {
+      "noTreatmentsTitle": "Todavía no hay tratamientos en el catálogo",
+      "noTreatmentsDescription": "Crea tu primer procedimiento dental con precio exacto para preparar presupuestos sin errores.",
+      "noTreatmentsReadOnlyDescription": "La administración de tu clínica todavía no ha añadido tratamientos estándar al catálogo.",
+      "noSearchResultsTitle": "Sin coincidencias en el catálogo",
+      "noSearchResultsDescription": "Ningún tratamiento coincide con tu búsqueda, categoría o filtro de estado actual.",
+      "noArchivedTitle": "No hay tratamientos archivados",
+      "noArchivedDescription": "Los tratamientos archivados por administración aparecerán aquí para poder revisarlos o restaurarlos."
+    },
+    "errors": {
+      "listLoadTitle": "No se pudo cargar el catálogo de tratamientos",
+      "listLoadDescription": "No pudimos obtener los tratamientos de tu clínica en este momento. Inténtalo de nuevo.",
+      "archivedLoadTitle": "No se pudieron cargar los tratamientos archivados",
+      "archivedLoadDescription": "No pudimos recuperar los tratamientos archivados en este momento. Inténtalo de nuevo."
+    },
+    "form": {
+      "createCardTitle": "Nuevo tratamiento del catálogo",
+      "createCardDescription": "Define un código único por clínica, nombres bilingües, duración estándar y precio exacto en la moneda de tu clínica.",
+      "editCardTitle": "Editar tratamiento",
+      "editCardDescription": "Actualiza nombres, categoría, duración, estado o precio estándar. Los presupuestos y facturas pasados no cambian.",
+      "codeLabel": "Código del tratamiento",
+      "codePlaceholder": "CLEAN-01",
+      "codeHint": "Mayúsculas, números, guiones o guiones bajos (máx. 32 caracteres, único por clínica).",
+      "categoryLabel": "Categoría",
+      "nameEnLabel": "Nombre (Inglés)",
+      "nameEnPlaceholder": "Dental prophylaxis",
+      "nameEsLabel": "Nombre (Español)",
+      "nameEsPlaceholder": "Limpieza dental",
+      "priceLabel": "Precio estándar ({currency})",
+      "pricePlaceholder": "150,50",
+      "priceHint": "Se guarda en céntimos enteros exactos (máximo 2 decimales, usando . o ,).",
+      "durationLabel": "Duración estándar (minutos)",
+      "durationPlaceholder": "30",
+      "durationHint": "Entre 5 y 480 minutos.",
+      "isActiveLabel": "Activo para nuevos presupuestos y citas",
+      "isActiveHint": "Desmárcalo para pausar este tratamiento sin archivarlo.",
+      "previewTitle": "Vista previa del precio",
+      "previewBaseLabel": "Precio base",
+      "previewTaxLabel": "{taxLabel} ({rate}%)",
+      "previewTotalLabel": "Total estimado con impuesto",
+      "previewInvalidHint": "Introduce un importe válido (por ejemplo 150,50) para previsualizar el formato y el impuesto de la clínica.",
+      "auditNotice": "Cada creación o edición queda registrada automáticamente en el historial de auditoría inmutable de tu clínica.",
+      "createSubmitButton": "Crear tratamiento",
+      "editSubmitButton": "Guardar cambios",
+      "savingButton": "Guardando…",
+      "cancelButton": "Cancelar",
+      "saveErrorTitle": "No se pudo guardar el tratamiento",
+      "saveErrorDescription": "No pudimos guardar el tratamiento en este momento. Tus datos siguen en pantalla para que puedas volver a intentarlo.",
+      "duplicateCodeError": "Ya existe un tratamiento activo con este código en tu clínica. Elige un código diferente."
+    },
+    "validation": {
+      "codeRequired": "Introduce un código de tratamiento.",
+      "codeTooLong": "El código no puede superar 32 caracteres.",
+      "codeInvalid": "Empieza con una letra o número y usa solo letras, números, guiones (-) o guiones bajos (_).",
+      "nameEnRequired": "Introduce el nombre del tratamiento en inglés.",
+      "nameEnTooLong": "El nombre en inglés no puede superar 120 caracteres.",
+      "nameEsRequired": "Introduce el nombre del tratamiento en español.",
+      "nameEsTooLong": "El nombre en español no puede superar 120 caracteres.",
+      "categoryInvalid": "Selecciona una categoría de tratamiento válida.",
+      "priceInvalid": "Introduce un precio válido mayor o igual que 0 con máximo 2 decimales.",
+      "durationInvalid": "Introduce un número entero de minutos entre 5 y 480.",
+      "isActiveInvalid": "Selecciona un estado activo válido."
+    }
   }
 }

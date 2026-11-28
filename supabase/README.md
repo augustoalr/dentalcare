@@ -9,6 +9,7 @@ Este directorio es la **única fuente de verdad** del esquema SQL de DentalCare 
   - `202611260002_patients_rls.sql`: crea `public.patients` con `CHECK` de integridad, índices (`idx_patients_clinic_id`, `idx_patients_clinic_active_name`), triggers `SECURITY INVOKER` (`private.guard_patient_update()`, `private.set_updated_at()`, `private.log_patient_archive()`), RLS multi-clínica estricto (`SELECT`, `INSERT`, `UPDATE`, **nunca `GRANT DELETE`**) y auditoría atómica sin PII (`action = 'patient.archived'`, `metadata_json = '{}'`) al archivar con `deleted_at`.
   - `202611260003_patient_files_storage_rls.sql`: añade `UNIQUE (clinic_id, id)` en `public.patients`, crea `public.patient_files` con FK compuesta `(clinic_id, patient_id)`, validaciones estrictas de ruta `<clinic_id>/<patient_id>/<uuid>.<ext>`, MIME permitido (`image/jpeg`, `image/png`, `image/webp`, `application/pdf`) y límite 10 MB, borrado lógico auditado sin PII (`action = 'patient_file.archived'`, `metadata_json = '{}'`), y configura el bucket privado `patient-files` (`public = false`) junto con políticas append-only en `storage.objects` (`INSERT` y `SELECT`, sin `UPDATE`/`DELETE`).
   - `202611270001_archive_restore_purge_rls.sql`: añade `purged_at` + restricción `patient_files_purged_requires_deleted_check` e índices parciales de archivados, trigger `BEFORE INSERT` anti-falsificación de `created_at` (`trg_patient_files_05_enforce_defaults` / `private.enforce_patient_file_defaults()`, B-01), inmutabilidad permanente tras `purged_at` incluso frente a propietario/`service_role` (B-02), lectura y restauración exclusiva de `admin` sobre pacientes y archivos archivados (`patient.restored` / `patient_file.restored` sin PII), y política `FOR DELETE` en `storage.objects` (`patient_files_storage_delete_authorized`) que habilita la liberación de espacio vía Storage API exclusivamente para `admin` sobre archivados o el propio autor dentro de los primeros 15 minutos (`patient_file.purged` sin PII).
+  - `202611270002_treatments_catalog_rls.sql`: crea `public.treatments_catalog` con precios en céntimos enteros (`bigint`, `0..99999999999`), nombres bilingües (`name_en`, `name_es`), categoría y duración estándar (`5..480` min), índice único parcial por clínica y código activo (`WHERE deleted_at IS NULL`), triggers `SECURITY INVOKER` (`private.enforce_treatment_catalog_defaults()`, `private.guard_treatment_catalog_update()` con archivado y restauración puros `B-01`, `private.set_updated_at()`, `private.log_treatment_catalog_change()` con auditoría atómica de `treatment.created`/`updated`/`archived`/`restored` sin entradas vacías en no-op) y RLS multi-clínica con escritura/archivado/restauración exclusivos de `admin` (`GRANT SELECT, INSERT, UPDATE`, nunca `DELETE`).
 
 ## Cómo ejecutar la verificación de BD (`pnpm db:verify`)
 ```bash
@@ -24,7 +25,32 @@ pnpm db:verify
 
 > **Ámbito:** Este procedimiento aplica exclusivamente a entornos de **desarrollo y pruebas con datos 100% sintéticos** (Nivel de riesgo 3). Antes de admitir datos reales de pacientes (Nivel de riesgo 4), cualquier rollback en producción deberá restaurar un backup/PITR de Supabase Pro y requerirá autorización explícita del dueño del producto.
 
-### A) Revertir únicamente `202611270001_archive_restore_purge_rls.sql` (`T-06b`)
+### A) Revertir únicamente `202611270002_treatments_catalog_rls.sql` (`T-07`)
+
+Si necesitas revertir únicamente el catálogo de tratamientos en desarrollo/pruebas manteniendo intactas todas las tablas y reglas de `T-02`–`T-06b` (probado en PGlite / PostgreSQL 17):
+
+```sql
+BEGIN;
+
+DROP TRIGGER IF EXISTS trg_treatments_catalog_30_audit_changes ON public.treatments_catalog;
+DROP TRIGGER IF EXISTS trg_treatments_catalog_20_set_updated_at ON public.treatments_catalog;
+DROP TRIGGER IF EXISTS trg_treatments_catalog_10_guard_update ON public.treatments_catalog;
+DROP TRIGGER IF EXISTS trg_treatments_catalog_05_enforce_defaults ON public.treatments_catalog;
+
+DROP POLICY IF EXISTS treatments_catalog_update_admin ON public.treatments_catalog;
+DROP POLICY IF EXISTS treatments_catalog_insert_admin ON public.treatments_catalog;
+DROP POLICY IF EXISTS treatments_catalog_select_same_clinic ON public.treatments_catalog;
+
+DROP TABLE IF EXISTS public.treatments_catalog;
+
+DROP FUNCTION IF EXISTS private.log_treatment_catalog_change();
+DROP FUNCTION IF EXISTS private.guard_treatment_catalog_update();
+DROP FUNCTION IF EXISTS private.enforce_treatment_catalog_defaults();
+
+COMMIT;
+```
+
+### B) Revertir únicamente `202611270001_archive_restore_purge_rls.sql` (`T-06b`)
 
 Si necesitas revertir únicamente los permisos de archivados/restauración/purga de espacio en desarrollo/pruebas manteniendo intactas todas las tablas y reglas de `T-02`–`T-06`:
 
@@ -327,7 +353,7 @@ ALTER TABLE public.patient_files
 COMMIT;
 ```
 
-### B) Revertir únicamente `202611260003_patient_files_storage_rls.sql` (`T-06`)
+### C) Revertir únicamente `202611260003_patient_files_storage_rls.sql` (`T-06`)
 
 > Requiere haber revertido antes `202611270001_archive_restore_purge_rls.sql` (`T-06b`) para retirar primero la política `DELETE` de Storage y el trigger `trg_patient_files_05_enforce_defaults`.
 
@@ -367,7 +393,7 @@ DROP FUNCTION IF EXISTS private.begin_patient_file_archive_transition(uuid);
 COMMIT;
 ```
 
-### C) Revertir únicamente `202611260002_patients_rls.sql` (`T-05`)
+### D) Revertir únicamente `202611260002_patients_rls.sql` (`T-05`)
 
 > Requiere haber revertido antes `202611260003_patient_files_storage_rls.sql` (`T-06`) debido a la FK compuesta desde `public.patient_files`.
 
@@ -396,7 +422,7 @@ DROP FUNCTION IF EXISTS private.begin_patient_archive_transition(uuid);
 COMMIT;
 ```
 
-### D) Revertir únicamente `202611260001_clinic_settings_audit_trigger.sql` (`T-04`)
+### E) Revertir únicamente `202611260001_clinic_settings_audit_trigger.sql` (`T-04`)
 
 Si necesitas desactivar o revertir únicamente el trigger de auditoría de configuración de clínica manteniendo intactas las tablas y datos sintéticos:
 
@@ -409,7 +435,7 @@ DROP FUNCTION IF EXISTS private.log_clinic_settings_change();
 COMMIT;
 ```
 
-### E) Revertir el esquema completo (`202611270001` + `202611260003` + `202611260002` + `202611260001` + `202611250001`) en desarrollo/pruebas
+### F) Revertir el esquema completo (`202611270002` + `202611270001` + `202611260003` + `202611260002` + `202611260001` + `202611250001`) en desarrollo/pruebas
 
 Si necesitas revertir todo el esquema en una base de datos de desarrollo/pruebas **sin datos reales**:
 
@@ -425,7 +451,11 @@ DROP POLICY IF EXISTS patient_files_storage_select_same_clinic ON storage.object
 DROP POLICY IF EXISTS patient_files_storage_insert_same_clinic ON storage.objects;
 DELETE FROM storage.buckets WHERE id = 'patient-files';
 
--- 2. Eliminar triggers (archivos clínicos, pacientes, clínicas, perfiles y audit_log)
+-- 2. Eliminar triggers (tratamientos, archivos clínicos, pacientes, clínicas, perfiles y audit_log)
+DROP TRIGGER IF EXISTS trg_treatments_catalog_30_audit_changes ON public.treatments_catalog;
+DROP TRIGGER IF EXISTS trg_treatments_catalog_20_set_updated_at ON public.treatments_catalog;
+DROP TRIGGER IF EXISTS trg_treatments_catalog_10_guard_update ON public.treatments_catalog;
+DROP TRIGGER IF EXISTS trg_treatments_catalog_05_enforce_defaults ON public.treatments_catalog;
 DROP TRIGGER IF EXISTS trg_patient_files_30_audit_archive ON public.patient_files;
 DROP TRIGGER IF EXISTS trg_patient_files_20_set_updated_at ON public.patient_files;
 DROP TRIGGER IF EXISTS trg_patient_files_10_guard_update ON public.patient_files;
@@ -443,6 +473,7 @@ DROP TRIGGER IF EXISTS trg_clinics_20_set_updated_at ON public.clinics;
 DROP TRIGGER IF EXISTS trg_clinics_10_guard_update ON public.clinics;
 
 -- 3. Eliminar tablas públicas y privadas en orden de dependencias FK
+DROP TABLE IF EXISTS public.treatments_catalog;
 DROP TABLE IF EXISTS public.patient_files;
 DROP TABLE IF EXISTS public.patients;
 DROP TABLE IF EXISTS public.audit_log;
@@ -452,6 +483,9 @@ DROP TABLE IF EXISTS private.patient_file_archive_transitions;
 DROP TABLE IF EXISTS private.patient_archive_transitions;
 
 -- 4. Eliminar todas las funciones auxiliares y el esquema privado
+DROP FUNCTION IF EXISTS private.log_treatment_catalog_change();
+DROP FUNCTION IF EXISTS private.guard_treatment_catalog_update();
+DROP FUNCTION IF EXISTS private.enforce_treatment_catalog_defaults();
 DROP FUNCTION IF EXISTS private.enforce_patient_file_defaults();
 DROP FUNCTION IF EXISTS private.log_patient_file_archive();
 DROP FUNCTION IF EXISTS private.guard_patient_file_update();
