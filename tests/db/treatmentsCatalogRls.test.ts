@@ -740,11 +740,18 @@ describe('T-07 Treatments catalog schema, multi-clinic RLS, admin-only mutations
 
       const readmePath = path.resolve(process.cwd(), 'supabase', 'README.md');
       const readme = readFileSync(readmePath, 'utf8');
-      const sectionStart = readme.split(
-        '### A) Revertir únicamente `202611270002_treatments_catalog_rls.sql`',
-      )[1];
-      expect(sectionStart).toBeDefined();
-      const sectionBody = sectionStart!.split('### B)')[0]!;
+      const sectionHeaderRegex =
+        /### [A-Z]\) Revertir únicamente `202611270002_treatments_catalog_rls\.sql`[^\r\n]*/;
+      const headerMatch = sectionHeaderRegex.exec(readme);
+      expect(headerMatch).not.toBeNull();
+      const afterHeader = readme.slice(
+        headerMatch!.index + headerMatch![0].length,
+      );
+      const nextSectionIdx = afterHeader.search(/\r?\n### /);
+      const sectionBody =
+        nextSectionIdx === -1
+          ? afterHeader
+          : afterHeader.slice(0, nextSectionIdx);
       const sqlMatch = /```sql\r?\n([\s\S]*?)```/.exec(sectionBody);
       expect(sqlMatch?.[1]).toBeTruthy();
 

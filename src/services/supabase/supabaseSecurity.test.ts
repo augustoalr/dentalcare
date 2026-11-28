@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SupabaseAuthService } from '@/services/auth/authService';
+import { SupabaseAppointmentRepository } from '@/services/repositories/appointmentRepository';
 import { SupabaseClinicAccessRepository } from '@/services/repositories/clinicAccessRepository';
 import { SupabasePatientFileRepository } from '@/services/repositories/patientFileRepository';
 import { SupabasePatientRepository } from '@/services/repositories/patientRepository';
@@ -1148,6 +1149,213 @@ describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
     await expect(repo.createTreatment('clinic-1', input)).rejects.toThrow(
       'Invalid treatment price received from database',
     );
+  });
+
+  it('enforces privacy-aware column projection (M-01), least-privilege payloads, pure archive/restore without .select()/.delete(), and PII-free error sanitization in SupabaseAppointmentRepository (T-08)', async () => {
+    const sampleRowWithNotes = {
+      id: 'appt-1',
+      clinic_id: 'clinic-1',
+      patient_id: 'patient-1',
+      dentist_id: 'dentist-1',
+      starts_at: '2026-11-28T06:00:00.000Z',
+      ends_at: '2026-11-28T06:30:00.000Z',
+      status: 'scheduled',
+      reason: 'Routine synthetic checkup',
+      clinical_notes: 'Confidential synthetic pulp diagnosis',
+      reminder_sent_at: null,
+      created_at: '2026-11-27T08:00:00.000Z',
+      updated_at: '2026-11-27T08:00:00.000Z',
+      deleted_at: null,
+    };
+
+    const sampleRowWithoutNotes = {
+      id: 'appt-1',
+      clinic_id: 'clinic-1',
+      patient_id: 'patient-1',
+      dentist_id: 'dentist-1',
+      starts_at: '2026-11-28T06:00:00.000Z',
+      ends_at: '2026-11-28T06:30:00.000Z',
+      status: 'scheduled',
+      reason: 'Routine synthetic checkup',
+      reminder_sent_at: null,
+      created_at: '2026-11-27T08:00:00.000Z',
+      updated_at: '2026-11-27T08:00:00.000Z',
+      deleted_at: null,
+    };
+
+    // 1. listAppointmentsByRange with includeClinicalNotes: false MUST NOT select clinical_notes (M-01)
+    const rangeOrderSpy = vi
+      .fn()
+      .mockResolvedValue({ data: [sampleRowWithoutNotes], error: null });
+    const rangeGtSpy = vi.fn().mockReturnValue({ order: rangeOrderSpy });
+    const rangeLtSpy = vi.fn().mockReturnValue({ gt: rangeGtSpy });
+    const rangeIsSpy = vi.fn().mockReturnValue({ lt: rangeLtSpy });
+    const rangeEqSpy = vi.fn().mockReturnValue({ is: rangeIsSpy });
+    const rangeSelectSpy = vi.fn().mockReturnValue({ eq: rangeEqSpy });
+
+    const insertSingleSpy = vi
+      .fn()
+      .mockResolvedValue({ data: sampleRowWithoutNotes, error: null });
+    const insertSelectSpy = vi.fn().mockReturnValue({ single: insertSingleSpy });
+    const insertSpy = vi.fn().mockReturnValue({ select: insertSelectSpy });
+
+    const updateSingleSpy = vi
+      .fn()
+      .mockResolvedValue({ data: sampleRowWithNotes, error: null });
+    const updateSelectSpy = vi.fn().mockReturnValue({ single: updateSingleSpy });
+    const archiveOrRestoreSelectSpy = vi.fn();
+    let updateMode: 'edit' | 'archive' | 'restore' = 'edit';
+
+    const makeNoSelectTerminal = () => {
+      const promise = Promise.resolve({ data: null, error: null }) as Promise<{
+        data: null;
+        error: null;
+      }> & { select: typeof archiveOrRestoreSelectSpy };
+      promise.select = archiveOrRestoreSelectSpy;
+      return promise;
+    };
+
+    const updateIsSpy = vi.fn().mockImplementation(() => {
+      if (updateMode === 'archive') {
+        return makeNoSelectTerminal();
+      }
+      return { select: updateSelectSpy };
+    });
+    const updateNotSpy = vi.fn().mockImplementation(() => makeNoSelectTerminal());
+    const updateEqSpy = vi.fn().mockReturnValue({
+      is: updateIsSpy,
+      not: updateNotSpy,
+    });
+    const updateSpy = vi.fn().mockReturnValue({ eq: updateEqSpy });
+    const deleteSpy = vi.fn();
+
+    const fromSpy = vi.fn().mockReturnValue({
+      select: rangeSelectSpy,
+      insert: insertSpy,
+      update: updateSpy,
+      delete: deleteSpy,
+    });
+
+    const repo = new SupabaseAppointmentRepository({
+      from: fromSpy,
+    } as unknown as DentalCareSupabaseClient);
+
+    const listed = await repo.listAppointmentsByRange(
+      'clinic-1',
+      {
+        startIso: '2026-11-27T20:00:00.000Z',
+        endIso: '2026-11-28T20:00:00.000Z',
+      },
+      { includeClinicalNotes: false },
+    );
+    expect(fromSpy).toHaveBeenCalledWith('appointments');
+    const listProjection = rangeSelectSpy.mock.calls[0]?.[0] as string;
+    expect(listProjection).not.toContain('clinical_notes');
+    expect(listed[0]?.clinicalNotes).toBeNull();
+    expect(Object.isFrozen(listed[0])).toBe(true);
+
+    // 2. createAppointment with includeClinicalNotes: false MUST omit clinical_notes from insert AND .select() (M-01)
+    const createdByReceptionist = await repo.createAppointment(
+      'clinic-1',
+      {
+        patientId: 'patient-1',
+        dentistId: 'dentist-1',
+        startsAt: '2026-11-28T06:00:00.000Z',
+        endsAt: '2026-11-28T06:30:00.000Z',
+        status: 'scheduled',
+        reason: 'Routine synthetic checkup',
+        clinicalNotes: 'Should never be sent by receptionist',
+      },
+      { includeClinicalNotes: false },
+    );
+    const insertPayload = insertSpy.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(insertPayload).not.toHaveProperty('clinical_notes');
+    expect(insertPayload).not.toHaveProperty('id');
+    expect(insertPayload).not.toHaveProperty('reminder_sent_at');
+    expect(insertPayload).not.toHaveProperty('created_at');
+    expect(insertPayload).not.toHaveProperty('updated_at');
+    expect(insertPayload).not.toHaveProperty('deleted_at');
+    const insertProjection = insertSelectSpy.mock.calls[0]?.[0] as string;
+    expect(insertProjection).not.toContain('clinical_notes');
+    expect(createdByReceptionist.clinicalNotes).toBeNull();
+
+    // 3. updateAppointmentStatus sends ONLY { status } and respects includeClinicalNotes: false
+    updateMode = 'edit';
+    updateSingleSpy.mockResolvedValueOnce({
+      data: { ...sampleRowWithoutNotes, status: 'confirmed' },
+      error: null,
+    });
+    const statusUpdated = await repo.updateAppointmentStatus(
+      'appt-1',
+      'confirmed',
+      { includeClinicalNotes: false },
+    );
+    expect(updateSpy.mock.calls[0]?.[0]).toEqual({ status: 'confirmed' });
+    expect(updateSelectSpy.mock.calls[0]?.[0]).not.toContain('clinical_notes');
+    expect(statusUpdated.status).toBe('confirmed');
+    expect(statusUpdated.clinicalNotes).toBeNull();
+
+    // 4. updateClinicalNotes sends ONLY { clinical_notes }
+    updateMode = 'edit';
+    updateSingleSpy.mockResolvedValueOnce({
+      data: sampleRowWithNotes,
+      error: null,
+    });
+    const notesUpdated = await repo.updateClinicalNotes(
+      'appt-1',
+      'Confidential synthetic pulp diagnosis',
+    );
+    expect(updateSpy.mock.calls[1]?.[0]).toEqual({
+      clinical_notes: 'Confidential synthetic pulp diagnosis',
+    });
+    expect(notesUpdated.clinicalNotes).toBe(
+      'Confidential synthetic pulp diagnosis',
+    );
+
+    // 5. archiveAppointment and restoreAppointment never call .select() or .delete()
+    updateMode = 'archive';
+    await repo.archiveAppointment('appt-1');
+    const archivePayload = updateSpy.mock.calls[2]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(archivePayload)).toEqual(['deleted_at']);
+    expect(typeof archivePayload.deleted_at).toBe('string');
+
+    updateMode = 'restore';
+    await repo.restoreAppointment('appt-1');
+    expect(updateSpy.mock.calls[3]?.[0]).toEqual({ deleted_at: null });
+    expect(updateNotSpy).toHaveBeenCalledWith('deleted_at', 'is', null);
+    expect(archiveOrRestoreSelectSpy).not.toHaveBeenCalled();
+    expect(deleteSpy).not.toHaveBeenCalled();
+
+    // 6. Sanitized errors never leak raw PostgreSQL messages or clinical notes
+    updateMode = 'edit';
+    updateSingleSpy.mockResolvedValueOnce({
+      data: null,
+      error: {
+        code: '42501',
+        message:
+          'Denied updating Confidential synthetic pulp diagnosis for patient Layla',
+      },
+    });
+    let thrownErr: Error | null = null;
+    try {
+      await repo.updateClinicalNotes(
+        'appt-1',
+        'Confidential synthetic pulp diagnosis',
+      );
+    } catch (err) {
+      thrownErr = err as Error;
+    }
+    expect(thrownErr?.message).toBe(
+      'Failed to update clinical notes (code: 42501)',
+    );
+    expect(thrownErr?.message).not.toContain('Confidential');
+    expect(thrownErr?.message).not.toContain('Layla');
   });
 
   it('never calls getPublicUrl anywhere in src/ (private Storage signed URLs only)', () => {
