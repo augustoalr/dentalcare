@@ -1,12 +1,12 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-28 15:17 GST por Manager (Inicio Coder T-09: WhatsApp `wa.me` + botón rápido Agendar cita)
+Última actualización: 2026-11-28 21:55 GST por Manager (Cierre T-09 PR #38 `bb3dfff` y envío de prompt T-09b al Revisor)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
-- En curso: `T-09` — Recordatorios de Cita por WhatsApp (`IWhatsAppService` + `wa.me` sin datos clínicos) + botón rápido "Agendar cita" (aprobado por Augusto, entregado al Coder `T-09 whatsapp-y-cita-rapida`)
+- En curso: `T-09b` — Modo Bimoneda por Clínica (Moneda Secundaria + Tasa del Día Congelada, ej. USD + Bs.) (`[DELICADA]`, prompt `docs/prompts/T-09b.md` en revisión por `Revisor T-09b` antes de entregarse al Coder, R-02)
 - Bloqueado por el humano: Ninguno (`dentalcare-dev` tiene migraciones `T-02`–`T-08` aplicadas + cuentas sintéticas listas)
-- Próxima tarea propuesta: `T-09b` — Modo Bimoneda por Clínica (USD + Bs. + tasa del día congelada, `[DELICADA]`, tras fusionar `T-09`)
+- Próxima tarea propuesta: `T-10` — Presupuestos (`quotes` + `quote_items`) con Cálculo Exacto (`[DELICADA]`, tras fusionar `T-09b`)
 
 ## Tabla de tareas
 
@@ -21,8 +21,8 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-06b Archivados, purga espacio (admin + 15 min), optimización y móvil | T-06b archivados-purga-movil | `t-06b-archivados-purga-movil` | — (en serie) | #26 | ✅ Fusionada | 2026-11-27 | 2026-11-27 (`48e5051`) | 2 (PR) / 2 (prompt) | 4 (3 en prompt: B-01/B-02/B-03; 1 en PR: orden rollback `README`) | `[DELICADA]` Revisor `APROBADO` en `b9c0757a`; preview móvil/escritorio + `restored`/`purged` sin PII en `dentalcare-dev`: PASÓ |
 | T-07 Catálogo de tratamientos | T-07 catalogo-tratamientos | `t-07-catalogo-tratamientos` | — (en serie) | #30 | ✅ Fusionada | 2026-11-27 | 2026-11-28 (`9d6dc99`) | 1 (PR) / 2 (prompt) | 1 (en prompt: B-01 archivado puro; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `4cdafb4d`; preview móvil/escritorio + 4 eventos `treatment.*` en `dentalcare-dev`: PASÓ |
 | T-08 Agenda + Notas + Panel del día | T-08 agenda-citas-notas | `t-08-agenda-citas-notas` | — (en serie) | #35 | ✅ Fusionada | 2026-11-28 | 2026-11-28 (`c0a12d5`) | 1 (PR) / 3 (prompt) | 6 (en prompt: B-01..B-05 + B-02b; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `1232f2cc` al 1.er intento; preview + `appointment.*` sin PII en `dentalcare-dev`: PASÓ |
-| T-09 Recordatorios WhatsApp (`wa.me`) + botón rápido Agendar cita | T-09 whatsapp-y-cita-rapida | `t-09-whatsapp-recordatorios` | — (en serie) | — | 🛠️ En curso | 2026-11-28 | | 0 | 0 | Prompt `docs/prompts/T-09.md` en manos del Coder (sin migración SQL; incluye botón rápido "Agendar cita" pedido por Augusto) |
-| T-09b Modo bimoneda (USD + Bs. + tasa del día) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Decisión Opción A de Augusto; antes de T-10 y T-11 |
+| T-09 Recordatorios WhatsApp (`wa.me`) + botón rápido Agendar cita | T-09 whatsapp-y-cita-rapida | `t-09-whatsapp-recordatorios` | — (en serie) | #38 | ✅ Fusionada | 2026-11-28 | 2026-11-28 (`bb3dfff`) | 1 (PR) | 0 | Preview + botón rápido "Agendar cita" + `wa.me` sin datos clínicos + `appointment.reminder_sent` `{}` en `dentalcare-dev`: PASÓ |
+| T-09b Modo bimoneda (USD + Bs. + tasa del día) | Revisor T-09b | `main` (prompt) | — (en serie) | — | 🔍 En revisión | 2026-11-28 | | 1 (prompt) | 0 | `[DELICADA]` Prompt `docs/prompts/T-09b.md` en validación por Revisor antes de Coder (R-02); antes de T-10 y T-11 |
 | T-10 Presupuestos exactos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05, T-07, T-09b |
 | T-11 Facturación y pagos básicos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-10 |
 | T-12 Deploy + Sentry + Rollback | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Crea `docs/DEPLOY.md` |
@@ -36,7 +36,7 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - [x] Abrir conversación nueva `"Manager"` en Fase E
 - [x] Previews automáticos de Vercel conectados y verificados en PR #3 (`T-01`), PR #10 (`T-03`) y PR #13 (`T-04`)
 - [x] Variables públicas de Supabase configuradas en Vercel + migraciones `T-02`–`T-08` (bucket privado `patient-files`, purga controlada, catálogo de tratamientos y agenda de citas) y cuentas sintéticas (`admin`/`dentist`) aplicadas en `dentalcare-dev`
-- [x] Preview unificado en Vercel (`tico17`) verificado en PR #26, PR #30 y PR #35
+- [x] Preview unificado en Vercel (`tico17`) verificado en PR #26, PR #30, PR #35 y PR #38
 - [ ] Configurar cuenta gratuita de Sentry antes de `T-12`
 
 ## Problemas abiertos conocidos
@@ -48,5 +48,5 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - Privacidad y términos → `T-14`, obligatorio antes de admitir usuarios/pacientes reales
 
 ## Métricas (actualizar al cerrar cada tarea)
-- Lead time medio: ~2 h (9 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 8
-- CI verde al primer intento: 8 / 9 · Lecciones anotadas: 10
+- Lead time medio: ~2 h (10 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 8
+- CI verde al primer intento: 9 / 10 · Lecciones anotadas: 11
