@@ -41,6 +41,7 @@ export interface AppointmentFormProps {
   readonly timezone: string;
   readonly role: UserRole;
   readonly defaultDateKey: string;
+  readonly defaultPatientId?: string;
   readonly patients: readonly PatientRecord[];
   readonly providers: readonly ClinicProvider[];
   readonly existingAppointments: readonly AppointmentRecord[];
@@ -66,6 +67,7 @@ export function AppointmentForm({
   timezone,
   role,
   defaultDateKey,
+  defaultPatientId,
   patients,
   providers,
   existingAppointments,
@@ -99,8 +101,18 @@ export function AppointmentForm({
     [patients],
   );
 
+  const resolvedDefaultPatientId =
+    mode === 'create' &&
+    defaultPatientId &&
+    patientsById.has(defaultPatientId)
+      ? defaultPatientId
+      : undefined;
+
   const [patientId, setPatientId] = useState(
-    initialAppointment?.patientId ?? sortedPatients[0]?.id ?? '',
+    initialAppointment?.patientId ??
+      resolvedDefaultPatientId ??
+      sortedPatients[0]?.id ??
+      '',
   );
   const [dentistId, setDentistId] = useState(
     initialAppointment?.dentistId ?? providers[0]?.id ?? '',

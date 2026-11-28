@@ -202,6 +202,13 @@
     "countPlural": "{count} active patients",
     "newPatientButton": "New patient",
     "closeFormButton": "Close form",
+    "quickScheduleButton": "Schedule appointment",
+    "createdBanner": {
+      "title": "Patient registered",
+      "description": "{name} is now in your clinic directory. You can schedule an appointment right away or open the chart.",
+      "viewChartLink": "View chart",
+      "dismissAria": "Dismiss patient confirmation"
+    },
     "unconfiguredTitle": "Patient directory unavailable",
     "unconfiguredDescription": "Connect the public Supabase environment variables to load and manage clinic patients.",
     "tabs": {
@@ -744,6 +751,8 @@
       "statusUpdatedDescription": "The appointment status was updated and recorded in the audit log.",
       "notesSavedTitle": "Clinical notes saved",
       "notesSavedDescription": "The visit clinical notes were saved securely without logging clinical text in audit history.",
+      "reminderSentTitle": "WhatsApp reminder recorded",
+      "reminderSentDescription": "The appointment reminder timestamp was saved and recorded in the audit log without clinical details.",
       "archivedTitle": "Appointment archived",
       "archivedDescription": "The appointment was moved to Archived and recorded in the audit log.",
       "restoredTitle": "Appointment restored",
@@ -763,9 +772,23 @@
       "loadDescription": "We could not retrieve your clinic's appointments right now. Please try again.",
       "statusUpdateError": "Could not update appointment status. Please try again."
     },
+    "reminder": {
+      "sendButton": "WhatsApp reminder",
+      "resendButton": "Resend WhatsApp",
+      "sendingButton": "Sending…",
+      "sentBadge": "Reminder sent ({time})",
+      "sentBadgeNoTime": "Reminder sent",
+      "missingPhoneHint": "Add a phone number with country code in the patient chart.",
+      "popupBlockedTitle": "Your browser blocked the WhatsApp tab",
+      "popupBlockedDescription": "Tap the link below to open WhatsApp and record the reminder as sent.",
+      "openWhatsAppLink": "Open WhatsApp now",
+      "saveErrorTitle": "Could not record reminder",
+      "saveErrorDescription": "WhatsApp was opened, but we could not save the reminder timestamp. Please try again."
+    },
     "patientSection": {
       "title": "Appointments & visit history",
       "description": "Upcoming and recent clinic appointments linked to this patient.",
+      "scheduleAppointmentLink": "Schedule appointment",
       "openScheduleLink": "Open full schedule",
       "loadingTitle": "Loading appointments",
       "loadingDescription": "Retrieving this patient's scheduled and past visits.",

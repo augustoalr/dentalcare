@@ -202,6 +202,13 @@
     "countPlural": "{count} pacientes activos",
     "newPatientButton": "Nuevo paciente",
     "closeFormButton": "Cerrar formulario",
+    "quickScheduleButton": "Agendar cita",
+    "createdBanner": {
+      "title": "Paciente registrado",
+      "description": "{name} ya está en el listado de tu clínica. Puedes agendar una cita ahora mismo o abrir su ficha.",
+      "viewChartLink": "Ver ficha",
+      "dismissAria": "Cerrar confirmación de paciente"
+    },
     "unconfiguredTitle": "Directorio de pacientes no disponible",
     "unconfiguredDescription": "Configura las variables públicas de entorno de Supabase para cargar y gestionar pacientes.",
     "tabs": {
@@ -744,6 +751,8 @@
       "statusUpdatedDescription": "El estado de la cita se actualizó y quedó anotado en la auditoría.",
       "notesSavedTitle": "Notas clínicas guardadas",
       "notesSavedDescription": "Las notas clínicas se guardaron de forma segura sin registrar texto clínico en la auditoría.",
+      "reminderSentTitle": "Recordatorio WhatsApp registrado",
+      "reminderSentDescription": "La hora del recordatorio quedó guardada y anotada en la auditoría sin datos clínicos.",
       "archivedTitle": "Cita archivada",
       "archivedDescription": "La cita pasó a la pestaña Archivadas y quedó anotada en la auditoría.",
       "restoredTitle": "Cita restaurada",
@@ -763,9 +772,23 @@
       "loadDescription": "No pudimos obtener las citas de tu clínica en este momento. Inténtalo de nuevo.",
       "statusUpdateError": "No se pudo actualizar el estado de la cita. Inténtalo de nuevo."
     },
+    "reminder": {
+      "sendButton": "Recordatorio WhatsApp",
+      "resendButton": "Reenviar WhatsApp",
+      "sendingButton": "Enviando…",
+      "sentBadge": "Recordatorio enviado ({time})",
+      "sentBadgeNoTime": "Recordatorio enviado",
+      "missingPhoneHint": "Añade un teléfono con código de país en la ficha del paciente.",
+      "popupBlockedTitle": "Tu navegador bloqueó la pestaña de WhatsApp",
+      "popupBlockedDescription": "Pulsa el enlace de abajo para abrir WhatsApp y registrar el recordatorio como enviado.",
+      "openWhatsAppLink": "Abrir WhatsApp ahora",
+      "saveErrorTitle": "No se pudo registrar el recordatorio",
+      "saveErrorDescription": "Se abrió WhatsApp, pero no pudimos guardar la hora del recordatorio. Inténtalo de nuevo."
+    },
     "patientSection": {
       "title": "Citas e historial de visitas",
       "description": "Citas próximas y recientes de tu clínica vinculadas a este paciente.",
+      "scheduleAppointmentLink": "Agendar cita",
       "openScheduleLink": "Abrir agenda completa",
       "loadingTitle": "Cargando citas",
       "loadingDescription": "Recuperando las citas programadas y pasadas de este paciente.",

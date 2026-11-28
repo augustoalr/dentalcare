@@ -75,6 +75,10 @@ export interface IAppointmentRepository {
     appointmentId: string,
     clinicalNotes: string | null,
   ): Promise<AppointmentRecord>;
+  markReminderSent(
+    appointmentId: string,
+    options?: AppointmentQueryOptions,
+  ): Promise<AppointmentRecord>;
   archiveAppointment(appointmentId: string): Promise<void>;
   restoreAppointment(appointmentId: string): Promise<void>;
 }
@@ -506,6 +510,54 @@ export class SupabaseAppointmentRepository implements IAppointmentRepository {
     }
 
     return mapAppointmentRow(data, true);
+  }
+
+  async markReminderSent(
+    appointmentId: string,
+    options?: AppointmentQueryOptions,
+  ): Promise<AppointmentRecord> {
+    const normalizedAppointmentId = appointmentId.trim();
+    if (normalizedAppointmentId.length === 0) {
+      throw new Error(
+        'Cannot mark appointment reminder as sent without a valid appointmentId',
+      );
+    }
+
+    const includeNotes = options?.includeClinicalNotes !== false;
+
+    // IMPORTANT: Send ONLY `{ reminder_sent_at }` so any active clinic role can
+    // record a WhatsApp reminder without touching `clinical_notes`. The DB trigger
+    // normalizes `reminder_sent_at` to `pg_catalog.now()` and logs `appointment.reminder_sent`.
+    const response = includeNotes
+      ? await this.client
+          .from('appointments')
+          .update({ reminder_sent_at: new Date().toISOString() })
+          .eq('id', normalizedAppointmentId)
+          .is('deleted_at', null)
+          .select(APPOINTMENT_SELECT_WITH_CLINICAL_NOTES)
+          .single()
+      : await this.client
+          .from('appointments')
+          .update({ reminder_sent_at: new Date().toISOString() })
+          .eq('id', normalizedAppointmentId)
+          .is('deleted_at', null)
+          .select(APPOINTMENT_SELECT_WITHOUT_CLINICAL_NOTES)
+          .single();
+
+    if (response.error) {
+      throw createSafeAppointmentRepositoryError(
+        'Failed to mark appointment reminder as sent',
+        response.error,
+      );
+    }
+
+    if (!response.data) {
+      throw new Error(
+        'Failed to mark appointment reminder as sent: record not found',
+      );
+    }
+
+    return mapAppointmentRow(response.data, includeNotes);
   }
 
   async archiveAppointment(appointmentId: string): Promise<void> {

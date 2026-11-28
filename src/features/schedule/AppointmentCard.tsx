@@ -26,6 +26,12 @@ import {
 import { AppointmentActionConfirmPanel } from '@/features/schedule/AppointmentActionConfirmPanel';
 import { AppointmentClinicalNotesPanel } from '@/features/schedule/AppointmentClinicalNotesPanel';
 import {
+  AppointmentReminderButton,
+  AppointmentReminderNotices,
+  ReminderSentBadge,
+  type SendReminderOutcome,
+} from '@/features/schedule/AppointmentReminderControls';
+import {
   getAppointmentStatusBadgeVariant,
   getAppointmentStatusLabelKey,
 } from '@/features/schedule/scheduleI18n';
@@ -50,6 +56,12 @@ export interface AppointmentCardProps {
     appointmentId: string,
     notes: string | null,
   ) => Promise<void>;
+  readonly onSendReminder?: (
+    appointment: AppointmentRecord,
+  ) => Promise<SendReminderOutcome>;
+  readonly onConfirmManualReminder?: (
+    appointment: AppointmentRecord,
+  ) => Promise<void>;
   readonly onEdit: (appointment: AppointmentRecord) => void;
   readonly onArchive: (appointment: AppointmentRecord) => Promise<void>;
 }
@@ -64,6 +76,8 @@ export function AppointmentCard({
   compact = false,
   onStatusChange,
   onSaveClinicalNotes,
+  onSendReminder,
+  onConfirmManualReminder,
   onEdit,
   onArchive,
 }: AppointmentCardProps) {
@@ -74,8 +88,14 @@ export function AppointmentCard({
   const [hasArchiveError, setHasArchiveError] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [hasStatusError, setHasStatusError] = useState(false);
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [blockedReminderUrl, setBlockedReminderUrl] = useState<string | null>(
+    null,
+  );
+  const [hasReminderError, setHasReminderError] = useState(false);
 
   const canManageNotes = canEditClinicalNotes(role);
+  const missingPhoneHintId = `appointment-missing-phone-${appointment.id}`;
   const patientName = patient?.fullName ?? t('schedule.card.unknownPatient');
   const dentistName = provider?.fullName ?? t('schedule.card.unknownDentist');
   const hasMedicalAlert =
@@ -128,6 +148,43 @@ export function AppointmentCard({
     setIsNotesOpen(false);
   };
 
+  const handleSendReminder = async () => {
+    if (!onSendReminder || isSendingReminder) {
+      return;
+    }
+
+    setIsSendingReminder(true);
+    setHasReminderError(false);
+    setBlockedReminderUrl(null);
+    try {
+      const outcome = await onSendReminder(appointment);
+      if (outcome.status === 'popup_blocked') {
+        setBlockedReminderUrl(outcome.launchedUrl);
+      }
+    } catch {
+      setHasReminderError(true);
+    } finally {
+      setIsSendingReminder(false);
+    }
+  };
+
+  const handleManualReminderOpen = async () => {
+    if (!onConfirmManualReminder || isSendingReminder) {
+      return;
+    }
+
+    setIsSendingReminder(true);
+    setHasReminderError(false);
+    try {
+      await onConfirmManualReminder(appointment);
+      setBlockedReminderUrl(null);
+    } catch {
+      setHasReminderError(true);
+    } finally {
+      setIsSendingReminder(false);
+    }
+  };
+
   return (
     <article className="space-y-3 rounded-lg border border-border bg-surface-card p-3.5 shadow-2xs">
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
@@ -143,6 +200,10 @@ export function AppointmentCard({
             >
               {t(getAppointmentStatusLabelKey(appointment.status))}
             </Badge>
+            <ReminderSentBadge
+              reminderSentAt={appointment.reminderSentAt}
+              timezone={timezone}
+            />
             {hasMedicalAlert ? (
               <Badge variant="medical" className="shrink-0">
                 <AlertTriangle
@@ -218,6 +279,17 @@ export function AppointmentCard({
           </Select>
 
           <div className="flex flex-wrap items-center gap-1.5">
+            {onSendReminder ? (
+              <AppointmentReminderButton
+                appointment={appointment}
+                patient={patient}
+                isSending={isSendingReminder}
+                disabled={isArchiving}
+                missingPhoneHintId={missingPhoneHintId}
+                onSend={() => void handleSendReminder()}
+              />
+            ) : null}
+
             {canManageNotes ? (
               <Button
                 type="button"
@@ -263,6 +335,17 @@ export function AppointmentCard({
           </div>
         </div>
       </div>
+
+      {onSendReminder ? (
+        <AppointmentReminderNotices
+          appointment={appointment}
+          patient={patient}
+          missingPhoneHintId={missingPhoneHintId}
+          blockedUrl={blockedReminderUrl}
+          hasError={hasReminderError}
+          onManualOpenClick={() => void handleManualReminderOpen()}
+        />
+      ) : null}
 
       {hasOverlap ? (
         <div

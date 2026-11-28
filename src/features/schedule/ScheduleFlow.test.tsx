@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '@/App';
 import type {
@@ -11,6 +11,7 @@ import type {
 import type { AuthSessionUser, UserRole } from '@/domain/auth';
 import type { SupportedLocale } from '@/domain/locale';
 import type { PatientRecord } from '@/domain/patients';
+import { buildWaMeReminderUrl } from '@/domain/whatsapp';
 import { AuthProvider } from '@/features/auth/AuthContext';
 import { I18nProvider } from '@/i18n';
 import en from '@/i18n/locales/en.json';
@@ -24,6 +25,7 @@ import type {
 } from '@/services/repositories/clinicAccessRepository';
 import type { IPatientRepository } from '@/services/repositories/patientRepository';
 import { InMemoryStorageAdapter } from '@/services/storage/storageAdapter';
+import type { IWhatsAppService } from '@/services/whatsapp/whatsappService';
 
 const SYNTHETIC_CLINIC: ClinicSummary = Object.freeze({
   id: 'clinic-t08-1',
@@ -309,6 +311,23 @@ function createInMemoryRepos(
     return updated;
   });
 
+  const markReminderSent = vi.fn(async (id, options) => {
+    const includeNotes = options?.includeClinicalNotes !== false;
+    const prev = activeList.find((a) => a.id === id);
+    if (!prev) {
+      throw new Error('Not found');
+    }
+    const nowIso = new Date().toISOString();
+    const updated: AppointmentRecord = Object.freeze({
+      ...prev,
+      clinicalNotes: includeNotes ? prev.clinicalNotes : null,
+      reminderSentAt: nowIso,
+      updatedAt: nowIso,
+    });
+    activeList = activeList.map((a) => (a.id === id ? updated : a));
+    return updated;
+  });
+
   const archiveAppointment = vi.fn(async (id) => {
     const target = activeList.find((a) => a.id === id);
     activeList = activeList.filter((a) => a.id !== id);
@@ -339,6 +358,7 @@ function createInMemoryRepos(
     updateAppointment,
     updateAppointmentStatus,
     updateClinicalNotes,
+    markReminderSent,
     archiveAppointment,
     restoreAppointment,
   };
@@ -363,10 +383,38 @@ function createInMemoryRepos(
       createAppointment,
       updateAppointmentStatus,
       updateClinicalNotes,
+      markReminderSent,
       archiveAppointment,
       restoreAppointment,
     },
   };
+}
+
+function LocationDisplay() {
+  const location = useLocation();
+  return (
+    <span data-testid="current-location" hidden>
+      {`${location.pathname}${location.search}`}
+    </span>
+  );
+}
+
+function createMockWhatsAppService(options?: { popupBlocked?: boolean }) {
+  const sendAppointmentReminder = vi.fn(async (payload) =>
+    Object.freeze({
+      channel: 'wa_me' as const,
+      launchedUrl: buildWaMeReminderUrl(payload),
+      popupBlocked: options?.popupBlocked ?? false,
+      deliveredAtIso: new Date().toISOString(),
+    }),
+  );
+
+  const service: IWhatsAppService = {
+    adapterName: 'wa_me',
+    sendAppointmentReminder,
+  };
+
+  return { service, sendAppointmentReminder };
 }
 
 function renderScheduleApp(options: {
@@ -375,6 +423,7 @@ function renderScheduleApp(options: {
   initialLocale?: SupportedLocale;
   appointmentRepository?: IAppointmentRepository | null;
   patientRepository?: IPatientRepository | null;
+  whatsappService?: IWhatsAppService;
 }) {
   const { authService, clinicAccessRepository } = createMockSessionRigs(
     options.role,
@@ -392,9 +441,11 @@ function renderScheduleApp(options: {
         clinicAccessRepository={clinicAccessRepository}
       >
         <MemoryRouter initialEntries={options.initialEntries ?? ['/schedule']}>
+          <LocationDisplay />
           <AppRoutes
             appointmentRepository={options.appointmentRepository}
             patientRepository={options.patientRepository}
+            whatsappService={options.whatsappService}
           />
         </MemoryRouter>
       </AuthProvider>
@@ -739,5 +790,246 @@ describe('T-08 Schedule, Daily Summary Panel & Clinical Notes UI Flow', () => {
     ).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText('in_progress')).not.toBeInTheDocument();
     expect(screen.queryByText('no_show')).not.toBeInTheDocument();
+  });
+
+  it('7. T-09: sends zero-clinical-data WhatsApp reminders from AppointmentCard and TodaySummaryPanel, handles popup-blocked fallback and save errors', async () => {
+    const user = userEvent.setup();
+
+    // Build an appointment guaranteed to be upcoming today so TodaySummaryPanel shows it as Next appointment today
+    const futureStart = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const futureEnd = new Date(futureStart.getTime() + 30 * 60 * 1000);
+    // Keep within today in Asia/Dubai if near midnight by falling back to 23:00-23:30 Dubai time
+    const dubaiFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Dubai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const todayDubaiKey = dubaiFormatter.format(new Date());
+    const startsAt =
+      dubaiFormatter.format(futureStart) === todayDubaiKey
+        ? futureStart.toISOString()
+        : `${todayDubaiKey}T19:00:00.000Z`;
+    const endsAt =
+      dubaiFormatter.format(futureStart) === todayDubaiKey
+        ? futureEnd.toISOString()
+        : `${todayDubaiKey}T19:30:00.000Z`;
+
+    const upcomingAppointment: AppointmentRecord = Object.freeze({
+      id: 'appt-wa-upcoming-1',
+      clinicId: SYNTHETIC_CLINIC.id,
+      patientId: 'patient-layla',
+      dentistId: 'provider-nur',
+      startsAt,
+      endsAt,
+      status: 'confirmed',
+      reason: 'Secret root canal treatment',
+      clinicalNotes: 'Articaine 4% confidential note',
+      reminderSentAt: null,
+      createdAt: '2026-11-27T08:00:00.000Z',
+      updatedAt: '2026-11-27T08:00:00.000Z',
+    });
+
+    const { appointmentRepository, patientRepository, spies } =
+      createInMemoryRepos([upcomingAppointment]);
+    const waMock = createMockWhatsAppService({ popupBlocked: false });
+
+    renderScheduleApp({
+      role: 'receptionist',
+      appointmentRepository,
+      patientRepository,
+      whatsappService: waMock.service,
+    });
+
+    // Trigger reminder from TodaySummaryPanel ("Next appointment today")
+    const summaryCard = await screen.findByLabelText(en.schedule.today.title);
+    const summaryWaBtn = await within(summaryCard).findByRole('button', {
+      name: en.schedule.reminder.sendButton,
+    });
+    await user.click(summaryWaBtn);
+
+    await waitFor(() => {
+      expect(waMock.sendAppointmentReminder).toHaveBeenCalledTimes(1);
+      expect(spies.markReminderSent).toHaveBeenCalledWith(
+        'appt-wa-upcoming-1',
+        { includeClinicalNotes: false },
+      );
+    });
+
+    // Strict allow-list check on payload passed to IWhatsAppService (zero clinical data)
+    const sentPayload = waMock.sendAppointmentReminder.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(sentPayload).sort()).toEqual([
+      'appointmentDateLabel',
+      'appointmentTimeLabel',
+      'clinicName',
+      'locale',
+      'patientFirstName',
+      'recipientPhoneE164Digits',
+    ]);
+    expect(sentPayload.patientFirstName).toBe('Layla');
+    expect(sentPayload.recipientPhoneE164Digits).toBe('971501112222');
+    expect(sentPayload.clinicName).toBe(SYNTHETIC_CLINIC.name);
+    const serialized = JSON.stringify(sentPayload).toLowerCase();
+    expect(serialized).not.toContain('penicillin');
+    expect(serialized).not.toContain('root canal');
+    expect(serialized).not.toContain('articaine');
+    expect(serialized).not.toContain('al mansoor');
+
+    // Badge and feedback appear on both TodaySummaryPanel and AppointmentCard
+    expect(
+      await screen.findByText(en.schedule.feedback.reminderSentTitle),
+    ).toBeInTheDocument();
+    expect(
+      within(summaryCard).getByText(/Reminder sent/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', {
+        name: en.schedule.reminder.resendButton,
+      }).length,
+    ).toBeGreaterThanOrEqual(2);
+
+    // Popup-blocked flow from AppointmentCard: does NOT call markReminderSent until user clicks direct link
+    waMock.sendAppointmentReminder.mockResolvedValueOnce(
+      Object.freeze({
+        channel: 'wa_me',
+        launchedUrl: 'https://wa.me/971501112222?text=Hello%20Layla',
+        popupBlocked: true,
+        deliveredAtIso: new Date().toISOString(),
+      }),
+    );
+
+    const cardResendButtons = screen.getAllByRole('button', {
+      name: en.schedule.reminder.resendButton,
+    });
+    // Second button belongs to AppointmentCard (first is TodaySummaryPanel)
+    await user.click(cardResendButtons[1]!);
+
+    expect(
+      await screen.findByText(en.schedule.reminder.popupBlockedTitle),
+    ).toBeInTheDocument();
+    expect(spies.markReminderSent).toHaveBeenCalledTimes(1); // still 1 — not called while blocked
+
+    const directWaLink = screen.getByRole('link', {
+      name: en.schedule.reminder.openWhatsAppLink,
+    });
+    expect(directWaLink).toHaveAttribute(
+      'href',
+      'https://wa.me/971501112222?text=Hello%20Layla',
+    );
+    expect(directWaLink).toHaveAttribute('target', '_blank');
+    expect(directWaLink).toHaveAttribute('rel', 'noopener noreferrer');
+
+    // Clicking the direct link marks the reminder as sent
+    await user.click(directWaLink);
+    await waitFor(() => {
+      expect(spies.markReminderSent).toHaveBeenCalledTimes(2);
+    });
+
+    // Error handling: when markReminderSent rejects, inline error alert is shown
+    spies.markReminderSent.mockRejectedValueOnce(new Error('DB write failed'));
+    await user.click(
+      screen.getAllByRole('button', {
+        name: en.schedule.reminder.resendButton,
+      })[1]!,
+    );
+
+    expect(
+      await screen.findByText(en.schedule.reminder.saveErrorTitle),
+    ).toBeInTheDocument();
+  });
+
+  it('8. T-09: disables WhatsApp reminder button with a clear hint when the patient has no valid phone', async () => {
+    const patientWithoutPhone: PatientRecord = Object.freeze({
+      id: 'patient-no-phone',
+      clinicId: SYNTHETIC_CLINIC.id,
+      fullName: 'Nadia Synthetic NoPhone',
+      phone: null,
+      email: 'nadia@synthetic.test',
+      dateOfBirth: null,
+      medicalAlerts: null,
+      generalNotes: null,
+      createdAt: '2026-11-26T08:00:00.000Z',
+      updatedAt: '2026-11-26T08:00:00.000Z',
+    });
+
+    const todayAppt = makeTodayAppointments()[0]!;
+    const noPhoneAppt: AppointmentRecord = Object.freeze({
+      ...todayAppt,
+      id: 'appt-no-phone-1',
+      patientId: patientWithoutPhone.id,
+    });
+
+    const { appointmentRepository, patientRepository } = createInMemoryRepos([
+      noPhoneAppt,
+    ]);
+    vi.mocked(patientRepository.listPatients).mockResolvedValue([
+      patientWithoutPhone,
+    ]);
+
+    renderScheduleApp({
+      role: 'receptionist',
+      appointmentRepository,
+      patientRepository,
+    });
+
+    await screen.findByText('Nadia Synthetic NoPhone');
+
+    const waButtons = screen.getAllByRole('button', {
+      name: en.schedule.reminder.sendButton,
+    });
+    expect(waButtons.length).toBeGreaterThanOrEqual(1);
+    for (const btn of waButtons) {
+      expect(btn).toBeDisabled();
+    }
+    expect(
+      screen.getAllByText(en.schedule.reminder.missingPhoneHint).length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it('9. T-09: opens AppointmentForm preselected via /schedule?newAppointment=1&patientId=<id>, cleans URL, and ignores unknown patientId safely', async () => {
+    const { appointmentRepository, patientRepository } = createInMemoryRepos(
+      makeTodayAppointments(),
+    );
+
+    // Valid patientId -> opens form with patient-omar preselected and strips query params
+    const firstRender = renderScheduleApp({
+      role: 'receptionist',
+      initialEntries: ['/schedule?newAppointment=1&patientId=patient-omar'],
+      appointmentRepository,
+      patientRepository,
+    });
+
+    const patientSelect = await screen.findByLabelText(
+      en.schedule.form.patientLabel,
+    );
+    expect(patientSelect).toHaveValue('patient-omar');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('current-location')).toHaveTextContent(
+        '/schedule',
+      );
+    });
+    firstRender.unmount();
+
+    // Unknown patientId -> ignored safely (falls back to first sorted patient Layla) and cleans URL
+    renderScheduleApp({
+      role: 'receptionist',
+      initialEntries: ['/schedule?newAppointment=1&patientId=unknown-uuid-999'],
+      appointmentRepository,
+      patientRepository,
+    });
+
+    const fallbackSelect = await screen.findByLabelText(
+      en.schedule.form.patientLabel,
+    );
+    expect(fallbackSelect).toHaveValue('patient-layla');
+    await waitFor(() => {
+      expect(screen.getByTestId('current-location')).toHaveTextContent(
+        '/schedule',
+      );
+    });
   });
 });

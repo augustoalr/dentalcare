@@ -1358,6 +1358,83 @@ describe('Supabase frontend wrapper security and degraded mode (R-11)', () => {
     expect(thrownErr?.message).not.toContain('Layla');
   });
 
+  it('enforces least-privilege payload, privacy-aware projection, and sanitized errors in markReminderSent (T-09)', async () => {
+    const sampleRowWithoutNotes = {
+      id: 'appt-1',
+      clinic_id: 'clinic-1',
+      patient_id: 'patient-1',
+      dentist_id: 'dentist-1',
+      starts_at: '2026-11-28T06:00:00.000Z',
+      ends_at: '2026-11-28T06:30:00.000Z',
+      status: 'confirmed',
+      reason: 'Routine checkup',
+      reminder_sent_at: '2026-11-28T05:00:00.000Z',
+      created_at: '2026-11-27T08:00:00.000Z',
+      updated_at: '2026-11-28T05:00:00.000Z',
+      deleted_at: null,
+    };
+
+    const singleSpy = vi
+      .fn()
+      .mockResolvedValue({ data: sampleRowWithoutNotes, error: null });
+    const selectSpy = vi.fn().mockReturnValue({ single: singleSpy });
+    const isSpy = vi.fn().mockReturnValue({ select: selectSpy });
+    const eqSpy = vi.fn().mockReturnValue({ is: isSpy });
+    const updateSpy = vi.fn().mockReturnValue({ eq: eqSpy });
+    const deleteSpy = vi.fn();
+
+    const repo = new SupabaseAppointmentRepository({
+      from: vi.fn().mockReturnValue({
+        update: updateSpy,
+        delete: deleteSpy,
+      }),
+    } as unknown as DentalCareSupabaseClient);
+
+    // 1. Sends ONLY { reminder_sent_at } and omits clinical_notes when includeClinicalNotes: false
+    const updated = await repo.markReminderSent('appt-1', {
+      includeClinicalNotes: false,
+    });
+
+    const payload = updateSpy.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(Object.keys(payload)).toEqual(['reminder_sent_at']);
+    expect(typeof payload.reminder_sent_at).toBe('string');
+    expect(eqSpy).toHaveBeenCalledWith('id', 'appt-1');
+    expect(isSpy).toHaveBeenCalledWith('deleted_at', null);
+    expect(selectSpy.mock.calls[0]?.[0]).not.toContain('clinical_notes');
+    expect(deleteSpy).not.toHaveBeenCalled();
+    expect(updated.reminderSentAt).toBe('2026-11-28T05:00:00.000Z');
+    expect(updated.clinicalNotes).toBeNull();
+    expect(Object.isFrozen(updated)).toBe(true);
+
+    // 2. Rejects blank appointmentId without touching Supabase
+    await expect(repo.markReminderSent('   ')).rejects.toThrow(
+      'Cannot mark appointment reminder as sent without a valid appointmentId',
+    );
+
+    // 3. Sanitizes DB errors without echoing raw details or patient names
+    singleSpy.mockResolvedValueOnce({
+      data: null,
+      error: {
+        code: '42501',
+        message: 'Denied updating reminder for Layla Alergic Penicillin',
+      },
+    });
+
+    let err: Error | null = null;
+    try {
+      await repo.markReminderSent('appt-1', { includeClinicalNotes: true });
+    } catch (caught) {
+      err = caught as Error;
+    }
+
+    expect(err?.message).toBe(
+      'Failed to mark appointment reminder as sent (code: 42501)',
+    );
+    expect(err?.message).not.toContain('Layla');
+    expect(err?.message).not.toContain('Penicillin');
+    expect(selectSpy.mock.calls[1]?.[0]).toContain('clinical_notes');
+  });
+
   it('never calls getPublicUrl anywhere in src/ (private Storage signed URLs only)', () => {
     const srcRoot = path.resolve(process.cwd(), 'src');
     const currentTestFile = path.resolve(
