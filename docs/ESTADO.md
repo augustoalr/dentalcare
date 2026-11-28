@@ -1,6 +1,6 @@
 # ESTADO del proyecto — DentalCare
 
-Última actualización: 2026-11-28 11:13 GST por Manager (Corrección de prompt T-08 tras B-01..B-05 y M-01..M-05 del Revisor)
+Última actualización: 2026-11-28 11:45 GST por Manager (Corrección B-02b `COALESCE` en prompt T-08)
 Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo profesor: SÍ · Lecciones: `docs/APRENDIZAJE.md`
 
 ## Ahora mismo
@@ -20,7 +20,7 @@ Nivel de riesgo del proyecto: 3 (sube a 4 antes de pacientes reales) · Modo pro
 | T-06 Archivos clínicos privados | T-06 archivos-privados | `t-06-archivos-privados` | — (en serie) | #20 | ✅ Fusionada | 2026-11-26 | 2026-11-27 (`2e864a1`) | 1 (PR) / 2 (prompt) | 1 (bloqueante en prompt: `NULL` en `CHECK` de `storage_path`; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `0e2a5e23`; preview en vivo + bucket privado + `patient_file.archived` sin PII en `dentalcare-dev`: PASÓ |
 | T-06b Archivados, purga espacio (admin + 15 min), optimización y móvil | T-06b archivados-purga-movil | `t-06b-archivados-purga-movil` | — (en serie) | #26 | ✅ Fusionada | 2026-11-27 | 2026-11-27 (`48e5051`) | 2 (PR) / 2 (prompt) | 4 (3 en prompt: B-01/B-02/B-03; 1 en PR: orden rollback `README`) | `[DELICADA]` Revisor `APROBADO` en `b9c0757a`; preview móvil/escritorio + `restored`/`purged` sin PII en `dentalcare-dev`: PASÓ |
 | T-07 Catálogo de tratamientos | T-07 catalogo-tratamientos | `t-07-catalogo-tratamientos` | — (en serie) | #30 | ✅ Fusionada | 2026-11-27 | 2026-11-28 (`9d6dc99`) | 1 (PR) / 2 (prompt) | 1 (en prompt: B-01 archivado puro; 0 en PR) | `[DELICADA]` Revisor `APROBADO` en `4cdafb4d`; preview móvil/escritorio + 4 eventos `treatment.*` en `dentalcare-dev`: PASÓ |
-| T-08 Agenda + Notas + Panel del día | Revisor T-08 | `main` (prompt) | — (en serie) | — | 🔍 En revisión | 2026-11-28 | | 2 (prompt) | 5 (en prompt: B-01..B-05 atrapados por Revisor) | `[DELICADA]` Prompt `docs/prompts/T-08.md` corregido (B-01..B-05 + M-01..M-05), en 2.ª validación por Revisor antes de Coder (R-02) |
+| T-08 Agenda + Notas + Panel del día | Revisor T-08 | `main` (prompt) | — (en serie) | — | 🔍 En revisión | 2026-11-28 | | 3 (prompt) | 6 (en prompt: B-01..B-05 + B-02b `COALESCE` atrapados por Revisor) | `[DELICADA]` Prompt `docs/prompts/T-08.md` corregido (`COALESCE` PG 17), en 3.ª validación por Revisor antes de Coder (R-02) |
 | T-09 Recordatorios WhatsApp (`wa.me`) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | Depende de T-08 |
 | T-09b Modo bimoneda (USD + Bs. + tasa del día) | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Decisión Opción A de Augusto; antes de T-10 y T-11 |
 | T-10 Presupuestos exactos | — | — | — (en serie) | — | ⏳ Pendiente | | | | | `[DELICADA]` Depende de T-05, T-07, T-09b |
@@ -48,5 +48,5 @@ Estados: ⏳ Pendiente · 🛠️ En curso · 🔍 En revisión · 🔁 Cambios 
 - Privacidad y términos → `T-14`, obligatorio antes de admitir usuarios/pacientes reales
 
 ## Métricas (actualizar al cerrar cada tarea)
-- Lead time medio: ~2 h (8 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 7
+- Lead time medio: ~2 h (8 tareas) · Bugs en producción este mes: 0 · CAMBIOS NECESARIOS del Revisor: 8
 - CI verde al primer intento: 7 / 8 · Lecciones anotadas: 9
