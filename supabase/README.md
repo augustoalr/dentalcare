@@ -10,6 +10,7 @@ Este directorio es la **única fuente de verdad** del esquema SQL de DentalCare 
   - `202611260003_patient_files_storage_rls.sql`: añade `UNIQUE (clinic_id, id)` en `public.patients`, crea `public.patient_files` con FK compuesta `(clinic_id, patient_id)`, validaciones estrictas de ruta `<clinic_id>/<patient_id>/<uuid>.<ext>`, MIME permitido (`image/jpeg`, `image/png`, `image/webp`, `application/pdf`) y límite 10 MB, borrado lógico auditado sin PII (`action = 'patient_file.archived'`, `metadata_json = '{}'`), y configura el bucket privado `patient-files` (`public = false`) junto con políticas append-only en `storage.objects` (`INSERT` y `SELECT`, sin `UPDATE`/`DELETE`).
   - `202611270001_archive_restore_purge_rls.sql`: añade `purged_at` + restricción `patient_files_purged_requires_deleted_check` e índices parciales de archivados, trigger `BEFORE INSERT` anti-falsificación de `created_at` (`trg_patient_files_05_enforce_defaults` / `private.enforce_patient_file_defaults()`, B-01), inmutabilidad permanente tras `purged_at` incluso frente a propietario/`service_role` (B-02), lectura y restauración exclusiva de `admin` sobre pacientes y archivos archivados (`patient.restored` / `patient_file.restored` sin PII), y política `FOR DELETE` en `storage.objects` (`patient_files_storage_delete_authorized`) que habilita la liberación de espacio vía Storage API exclusivamente para `admin` sobre archivados o el propio autor dentro de los primeros 15 minutos (`patient_file.purged` sin PII).
   - `202611270002_treatments_catalog_rls.sql`: crea `public.treatments_catalog` con precios en céntimos enteros (`bigint`, `0..99999999999`), nombres bilingües (`name_en`, `name_es`), categoría y duración estándar (`5..480` min), índice único parcial por clínica y código activo (`WHERE deleted_at IS NULL`), triggers `SECURITY INVOKER` (`private.enforce_treatment_catalog_defaults()`, `private.guard_treatment_catalog_update()` con archivado y restauración puros `B-01`, `private.set_updated_at()`, `private.log_treatment_catalog_change()` con auditoría atómica de `treatment.created`/`updated`/`archived`/`restored` sin entradas vacías en no-op) y RLS multi-clínica con escritura/archivado/restauración exclusivos de `admin` (`GRANT SELECT, INSERT, UPDATE`, nunca `DELETE`).
+  - `202611280001_appointments_rls.sql`: añade `UNIQUE (clinic_id, id)` en `public.profiles`, crea `public.appointments` con FKs compuestas a `public.patients (clinic_id, id)` y `public.profiles (clinic_id, id)`, duración estricta (`5 min..12 h`), enlaza `public.patient_files.appointment_id` mediante FK compuesta `(clinic_id, patient_id, appointment_id)` + índice no parcial, guarda de transición de archivado `private.appointment_archive_transitions` (PG 17 `WCO_RLS_CONFLICT_CHECK`), triggers `SECURITY INVOKER` que protegen `clinical_notes` en BD solo para `dentist`/`admin` (fail-closed `COALESCE`), normalizan `reminder_sent_at` a `now()` impidiendo borrarlo, exigen archivado/restauración puros y registran en `public.audit_log` sin PII ni datos clínicos (`appointment.created`, `status_changed`, `clinical_notes_updated`, `rescheduled`, `reminder_sent`, `archived`, `restored`), más RLS multi-clínica (`GRANT SELECT, INSERT, UPDATE`, nunca `DELETE`).
 
 ## Cómo ejecutar la verificación de BD (`pnpm db:verify`)
 ```bash
@@ -25,7 +26,47 @@ pnpm db:verify
 
 > **Ámbito:** Este procedimiento aplica exclusivamente a entornos de **desarrollo y pruebas con datos 100% sintéticos** (Nivel de riesgo 3). Antes de admitir datos reales de pacientes (Nivel de riesgo 4), cualquier rollback en producción deberá restaurar un backup/PITR de Supabase Pro y requerirá autorización explícita del dueño del producto.
 
-### A) Revertir únicamente `202611270002_treatments_catalog_rls.sql` (`T-07`)
+### A) Revertir únicamente `202611280001_appointments_rls.sql` (`T-08`)
+
+Si necesitas revertir únicamente la agenda de citas y el enlace `patient_files.appointment_id` en desarrollo/pruebas manteniendo intactas todas las tablas y reglas de `T-02`–`T-07` (probado en PGlite / PostgreSQL 17):
+
+```sql
+BEGIN;
+
+-- 1. Eliminar primero la FK e índice añadidos sobre public.patient_files
+ALTER TABLE public.patient_files
+  DROP CONSTRAINT IF EXISTS patient_files_clinic_patient_appointment_fkey;
+DROP INDEX IF EXISTS public.idx_patient_files_clinic_patient_appointment;
+
+-- 2. Eliminar triggers, políticas y tabla public.appointments
+DROP TRIGGER IF EXISTS trg_appointments_30_audit_changes ON public.appointments;
+DROP TRIGGER IF EXISTS trg_appointments_20_set_updated_at ON public.appointments;
+DROP TRIGGER IF EXISTS trg_appointments_10_guard_update ON public.appointments;
+DROP TRIGGER IF EXISTS trg_appointments_05_enforce_defaults ON public.appointments;
+
+DROP POLICY IF EXISTS appointments_update_same_clinic ON public.appointments;
+DROP POLICY IF EXISTS appointments_insert_same_clinic ON public.appointments;
+DROP POLICY IF EXISTS appointments_select_same_clinic ON public.appointments;
+
+DROP TABLE IF EXISTS public.appointments;
+
+-- 3. Eliminar tabla privada de transición, restricción en profiles y funciones de T-08
+DROP TABLE IF EXISTS private.appointment_archive_transitions;
+
+ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_clinic_id_id_unique;
+
+DROP FUNCTION IF EXISTS private.log_appointment_change();
+DROP FUNCTION IF EXISTS private.guard_appointment_update();
+DROP FUNCTION IF EXISTS private.enforce_appointment_defaults();
+DROP FUNCTION IF EXISTS private.is_appointment_being_archived(uuid);
+DROP FUNCTION IF EXISTS private.end_appointment_archive_transition(uuid);
+DROP FUNCTION IF EXISTS private.begin_appointment_archive_transition(uuid);
+
+COMMIT;
+```
+
+### B) Revertir únicamente `202611270002_treatments_catalog_rls.sql` (`T-07`)
 
 Si necesitas revertir únicamente el catálogo de tratamientos en desarrollo/pruebas manteniendo intactas todas las tablas y reglas de `T-02`–`T-06b` (probado en PGlite / PostgreSQL 17):
 
@@ -50,7 +91,7 @@ DROP FUNCTION IF EXISTS private.enforce_treatment_catalog_defaults();
 COMMIT;
 ```
 
-### B) Revertir únicamente `202611270001_archive_restore_purge_rls.sql` (`T-06b`)
+### C) Revertir únicamente `202611270001_archive_restore_purge_rls.sql` (`T-06b`)
 
 Si necesitas revertir únicamente los permisos de archivados/restauración/purga de espacio en desarrollo/pruebas manteniendo intactas todas las tablas y reglas de `T-02`–`T-06`:
 
@@ -353,9 +394,9 @@ ALTER TABLE public.patient_files
 COMMIT;
 ```
 
-### C) Revertir únicamente `202611260003_patient_files_storage_rls.sql` (`T-06`)
+### D) Revertir únicamente `202611260003_patient_files_storage_rls.sql` (`T-06`)
 
-> Requiere haber revertido antes `202611270001_archive_restore_purge_rls.sql` (`T-06b`) para retirar primero la política `DELETE` de Storage y el trigger `trg_patient_files_05_enforce_defaults`.
+> Requiere haber revertido antes `202611280001_appointments_rls.sql` (`T-08`, por la FK compuesta desde `public.patient_files`) y `202611270001_archive_restore_purge_rls.sql` (`T-06b`) para retirar primero la política `DELETE` de Storage y el trigger `trg_patient_files_05_enforce_defaults`.
 
 Si necesitas revertir únicamente los archivos clínicos y el bucket privado `patient-files` en desarrollo/pruebas manteniendo intactos `patients`, `clinics`, `profiles` y `audit_log`:
 
@@ -393,9 +434,9 @@ DROP FUNCTION IF EXISTS private.begin_patient_file_archive_transition(uuid);
 COMMIT;
 ```
 
-### D) Revertir únicamente `202611260002_patients_rls.sql` (`T-05`)
+### E) Revertir únicamente `202611260002_patients_rls.sql` (`T-05`)
 
-> Requiere haber revertido antes `202611260003_patient_files_storage_rls.sql` (`T-06`) debido a la FK compuesta desde `public.patient_files`.
+> Requiere haber revertido antes `202611280001_appointments_rls.sql` (`T-08`, por `appointments_clinic_patient_fkey`) y `202611260003_patient_files_storage_rls.sql` (`T-06`, por `patient_files_clinic_patient_fkey`).
 
 Si necesitas revertir únicamente el módulo de pacientes en desarrollo/pruebas manteniendo intactos `clinics`, `profiles` y `audit_log` (recuerda que `audit_log` es inmutable y conserva su historial sin PII):
 
@@ -422,7 +463,7 @@ DROP FUNCTION IF EXISTS private.begin_patient_archive_transition(uuid);
 COMMIT;
 ```
 
-### E) Revertir únicamente `202611260001_clinic_settings_audit_trigger.sql` (`T-04`)
+### F) Revertir únicamente `202611260001_clinic_settings_audit_trigger.sql` (`T-04`)
 
 Si necesitas desactivar o revertir únicamente el trigger de auditoría de configuración de clínica manteniendo intactas las tablas y datos sintéticos:
 
@@ -435,7 +476,7 @@ DROP FUNCTION IF EXISTS private.log_clinic_settings_change();
 COMMIT;
 ```
 
-### F) Revertir el esquema completo (`202611270002` + `202611270001` + `202611260003` + `202611260002` + `202611260001` + `202611250001`) en desarrollo/pruebas
+### G) Revertir el esquema completo (`202611280001` + `202611270002` + `202611270001` + `202611260003` + `202611260002` + `202611260001` + `202611250001`) en desarrollo/pruebas
 
 Si necesitas revertir todo el esquema en una base de datos de desarrollo/pruebas **sin datos reales**:
 
@@ -451,7 +492,11 @@ DROP POLICY IF EXISTS patient_files_storage_select_same_clinic ON storage.object
 DROP POLICY IF EXISTS patient_files_storage_insert_same_clinic ON storage.objects;
 DELETE FROM storage.buckets WHERE id = 'patient-files';
 
--- 2. Eliminar triggers (tratamientos, archivos clínicos, pacientes, clínicas, perfiles y audit_log)
+-- 2. Eliminar triggers (citas, tratamientos, archivos clínicos, pacientes, clínicas, perfiles y audit_log)
+DROP TRIGGER IF EXISTS trg_appointments_30_audit_changes ON public.appointments;
+DROP TRIGGER IF EXISTS trg_appointments_20_set_updated_at ON public.appointments;
+DROP TRIGGER IF EXISTS trg_appointments_10_guard_update ON public.appointments;
+DROP TRIGGER IF EXISTS trg_appointments_05_enforce_defaults ON public.appointments;
 DROP TRIGGER IF EXISTS trg_treatments_catalog_30_audit_changes ON public.treatments_catalog;
 DROP TRIGGER IF EXISTS trg_treatments_catalog_20_set_updated_at ON public.treatments_catalog;
 DROP TRIGGER IF EXISTS trg_treatments_catalog_10_guard_update ON public.treatments_catalog;
@@ -473,16 +518,25 @@ DROP TRIGGER IF EXISTS trg_clinics_20_set_updated_at ON public.clinics;
 DROP TRIGGER IF EXISTS trg_clinics_10_guard_update ON public.clinics;
 
 -- 3. Eliminar tablas públicas y privadas en orden de dependencias FK
+--    (patient_files antes de appointments; appointments antes de patients y profiles)
 DROP TABLE IF EXISTS public.treatments_catalog;
 DROP TABLE IF EXISTS public.patient_files;
+DROP TABLE IF EXISTS public.appointments;
 DROP TABLE IF EXISTS public.patients;
 DROP TABLE IF EXISTS public.audit_log;
 DROP TABLE IF EXISTS public.profiles;
 DROP TABLE IF EXISTS public.clinics;
+DROP TABLE IF EXISTS private.appointment_archive_transitions;
 DROP TABLE IF EXISTS private.patient_file_archive_transitions;
 DROP TABLE IF EXISTS private.patient_archive_transitions;
 
 -- 4. Eliminar todas las funciones auxiliares y el esquema privado
+DROP FUNCTION IF EXISTS private.log_appointment_change();
+DROP FUNCTION IF EXISTS private.guard_appointment_update();
+DROP FUNCTION IF EXISTS private.enforce_appointment_defaults();
+DROP FUNCTION IF EXISTS private.is_appointment_being_archived(uuid);
+DROP FUNCTION IF EXISTS private.end_appointment_archive_transition(uuid);
+DROP FUNCTION IF EXISTS private.begin_appointment_archive_transition(uuid);
 DROP FUNCTION IF EXISTS private.log_treatment_catalog_change();
 DROP FUNCTION IF EXISTS private.guard_treatment_catalog_update();
 DROP FUNCTION IF EXISTS private.enforce_treatment_catalog_defaults();

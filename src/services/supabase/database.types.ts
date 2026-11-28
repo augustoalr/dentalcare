@@ -1,3 +1,4 @@
+import type { AppointmentStatus } from '@/domain/appointments';
 import type { SupportedLocale } from '@/domain/locale';
 import type { AllowedPatientFileMimeType } from '@/domain/patientFiles';
 import type { TreatmentCategory } from '@/domain/treatments';
@@ -204,6 +205,50 @@ export type TreatmentCatalogUpdate = {
   deleted_at?: string | null;
 };
 
+export type AppointmentRow = {
+  id: string;
+  clinic_id: string;
+  patient_id: string;
+  dentist_id: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  reason: string | null;
+  clinical_notes: string | null;
+  reminder_sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type AppointmentInsert = {
+  id?: string;
+  clinic_id: string;
+  patient_id: string;
+  dentist_id: string;
+  starts_at: string;
+  ends_at: string;
+  status?: AppointmentStatus;
+  reason?: string | null;
+  clinical_notes?: string | null;
+  reminder_sent_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  deleted_at?: string | null;
+};
+
+export type AppointmentUpdate = {
+  dentist_id?: string;
+  starts_at?: string;
+  ends_at?: string;
+  status?: AppointmentStatus;
+  reason?: string | null;
+  clinical_notes?: string | null;
+  reminder_sent_at?: string | null;
+  updated_at?: string;
+  deleted_at?: string | null;
+};
+
 export type AuditLogRow = {
   id: string;
   clinic_id: string;
@@ -280,6 +325,41 @@ export type Database = {
             columns: ['clinic_id', 'patient_id'];
             isOneToOne: false;
             referencedRelation: 'patients';
+            referencedColumns: ['clinic_id', 'id'];
+          },
+          {
+            foreignKeyName: 'patient_files_clinic_patient_appointment_fkey';
+            columns: ['clinic_id', 'patient_id', 'appointment_id'];
+            isOneToOne: false;
+            referencedRelation: 'appointments';
+            referencedColumns: ['clinic_id', 'patient_id', 'id'];
+          },
+        ];
+      };
+      appointments: {
+        Row: AppointmentRow;
+        Insert: AppointmentInsert;
+        Update: AppointmentUpdate;
+        Relationships: [
+          {
+            foreignKeyName: 'appointments_clinic_id_fkey';
+            columns: ['clinic_id'];
+            isOneToOne: false;
+            referencedRelation: 'clinics';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'appointments_clinic_patient_fkey';
+            columns: ['clinic_id', 'patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['clinic_id', 'id'];
+          },
+          {
+            foreignKeyName: 'appointments_clinic_dentist_fkey';
+            columns: ['clinic_id', 'dentist_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
             referencedColumns: ['clinic_id', 'id'];
           },
         ];

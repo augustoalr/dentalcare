@@ -18,12 +18,14 @@ import {
   type PatientRecord,
 } from '@/domain/patients';
 import { useAuth } from '@/features/auth/AuthContext';
+import { PatientAppointmentsSection } from '@/features/patients/PatientAppointmentsSection';
 import { PatientArchiveConfirmPanel } from '@/features/patients/PatientArchiveConfirmPanel';
 import { PatientFilesSection } from '@/features/patients/PatientFilesSection';
 import { PatientForm } from '@/features/patients/PatientForm';
 import { usePatientRepository } from '@/features/patients/PatientRepositoryContext';
 import { useI18n } from '@/i18n';
 import type { IImageOptimizer } from '@/services/media/imageOptimizer';
+import type { IAppointmentRepository } from '@/services/repositories/appointmentRepository';
 import type { IPatientFileRepository } from '@/services/repositories/patientFileRepository';
 import type { IPatientRepository } from '@/services/repositories/patientRepository';
 import { EmptyState } from '@/ui/components/states/EmptyState';
@@ -42,12 +44,14 @@ import {
 export interface PatientDetailPageProps {
   readonly patientRepository?: IPatientRepository | null;
   readonly patientFileRepository?: IPatientFileRepository | null;
+  readonly appointmentRepository?: IAppointmentRepository | null;
   readonly imageOptimizer?: IImageOptimizer;
 }
 
 export function PatientDetailPage({
   patientRepository,
   patientFileRepository,
+  appointmentRepository,
   imageOptimizer,
 }: PatientDetailPageProps) {
   const { patientId } = useParams<{ patientId: string }>();
@@ -404,6 +408,12 @@ export function PatientDetailPage({
         patientId={patient.id}
         patientFileRepository={patientFileRepository}
         imageOptimizer={imageOptimizer}
+      />
+
+      <PatientAppointmentsSection
+        clinicId={clinic.id}
+        patientId={patient.id}
+        appointmentRepository={appointmentRepository}
       />
     </section>
   );
